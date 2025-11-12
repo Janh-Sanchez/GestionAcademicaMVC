@@ -1,26 +1,36 @@
 package com.dominio;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+
+@Entity
 public class TokenUsuario {
 
-	private String contrasena;
-	private boolean estado;
-	private Integer idToken;
-	private String nombreUsuario;
-	private Rol rol;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idToken;
 
-	public TokenUsuario(){
+    @NotBlank
+    @Size(min = 3, max = 50)
+    @Column(nullable = false, unique = true, length = 50)
+    private String nombreUsuario;
 
-	}
+    @NotBlank
+    @Size(min = 8, max = 60)
+    @Column(nullable = false, length = 255)
+    private String contrasena;
 
-	public void finalize() throws Throwable {
+    @Column(nullable = false)
+    private boolean estado;
 
-	}
-	/**
-	 * 
-	 * @param usuario
-	 * @param contrasena
-	 */
-	public boolean validarCredenciales(String usuario, String contrasena){
-		return false;
-	}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rol")
+    private Rol rol;
+
+    @OneToOne(mappedBy = "tokenAccess", fetch = FetchType.LAZY)
+    private Usuario usuario;
+
+    public TokenUsuario(){
+
+    }
 }//end TokenUsuario

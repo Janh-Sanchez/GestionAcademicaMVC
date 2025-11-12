@@ -1,39 +1,41 @@
 package com.dominio;
 
-import java.util.HashMap;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.util.Map;
-
+import java.util.Set;
+@Entity
 public class Grado {
 
-	private HashMap<Integer, BibliotecaLogros> bibliotecaLogros;
-	private HashMap<Integer, Grupo> grupos;
-	private Integer idGrado;
-	private String nombreGrado;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idGrado;
 
-	public Grado(){
+    @NotBlank
+    @Size(min = 1, max = 50)
+    @Pattern(regexp = "^[A-Za-z0-9 ÁÉÍÓÚáéíóúñÑ-]+$", message = "Solo letras, números y espacios")
+    @Column(nullable = false, length = 50)
+    private String nombreGrado;
 
-	}
+	@OneToMany
+    private Set<BibliotecaLogros> bibliotecaLogros;
 
-	public void finalize() throws Throwable {
+    @OneToMany(mappedBy = "grado", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	private Set<Grupo> grupos;
 
-	}
-	/**
-	 * 
-	 * @param grupo
-	 */
-	public void agregarGrupo(Grupo grupo){
+    public Grado(){
 
-	}
+    }
 
-	/**
-	 * 
-	 * @param grupo
-	 */
-	public void eliminarGrupo(Grupo grupo){
+    public void agregarGrupo(Grupo grupo){
 
-	}
+    }
 
-	public Map<String, Grupo> obtenerGrupos(){
-		return null;
-	}
+    public void eliminarGrupo(Grupo grupo){
+
+    }
+
+    public Map<String, Grupo> obtenerGrupos(){
+        return null;
+    }
 }//end Grado

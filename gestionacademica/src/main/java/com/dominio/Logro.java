@@ -1,15 +1,25 @@
 package com.dominio;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+
+@Entity
 public class Logro {
 
-	private String descripcion;
-	private Integer idLogro;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idLogro;
 
-	public Logro(){
+    @NotBlank
+    @Size(min = 10, max = 200)
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String descripcion;
 
-	}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bibliotecaLogros", referencedColumnName = "idBibliotecaLogros")
+    private BibliotecaLogros bibliotecaLogros;
 
-	public void finalize() throws Throwable {
+    public Logro(){
 
-	}
+    }
 }//end Logro

@@ -1,19 +1,29 @@
 package com.dominio;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+
+@Entity
 public class Permiso {
 
-	private String descripcion;
-	private Integer idPermiso;
-	private String nombre;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idPermiso;
 
-	public Permiso(){
+    @NotBlank
+    @Size(min = 3, max = 50)
+    @Column(nullable = false, unique = true, length = 50)
+    private String nombre;
 
-	}
+    @Size(max = 10)
+    @Column(length = 200)
+    private String descripcion;
 
-	public void finalize() throws Throwable {
+    public Permiso(){
 
-	}
-	public void esValido(){
+    }
 
-	}
+    public void esValido(){
+
+    }
 }//end Permiso

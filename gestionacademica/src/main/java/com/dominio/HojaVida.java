@@ -1,22 +1,33 @@
 package com.dominio;
 
+import jakarta.persistence.*;
 import java.util.Set;
 
+@Entity
 public class HojaVida {
 
-	private Set<String> alergias;
-	private Set<String> aspectosRelevantes;
-	private Set<String> enfermedades;
-	private Integer idHojaDeVida;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idHojaVida;
 
-	public HojaVida(){
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estudiante", unique = true)
+    private Estudiante estudiante;
 
-	}
+    @ElementCollection
+    private Set<String> alergias;
 
-	public void finalize() throws Throwable {
+    @ElementCollection
+    private Set<String> aspectosRelevantes;
 
-	}
-	public void generarHojaDeVida(){
+    @ElementCollection
+    private Set<String> enfermedades;
 
-	}
+    public HojaVida(){
+
+    }
+
+    public void generarHojaDeVida(){
+
+    }
 }//end HojaVida

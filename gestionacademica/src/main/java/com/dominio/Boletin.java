@@ -1,40 +1,46 @@
 package com.dominio;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
-import java.util.HashMap;
+import java.util.Set;
 
+@Entity
 public class Boletin {
 
-	private Estudiante estudiante;
-	private LocalDate fechaGeneracion;
-	private Integer idBoletin;
-	private HashMap<Integer, LogroEstudiante> logrosEstudiante;
-	private String periodo;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idBoletin;
 
-	public Boletin(){
+    @NotBlank
+    @Size(min = 3, max = 20)
+    @Column(nullable = false, length = 20)
+    private String periodo;
 
-	}
+    @NotNull
+    @Column(nullable = false)
+    private LocalDate fechaGeneracion;
 
-	public void finalize() throws Throwable {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estudiante", referencedColumnName = "idEstudiante")
+    private Estudiante estudiante;
 
-	}
-	/**
-	 * 
-	 * @param logroEstudiante
-	 */
-	public void añadirLogroEstudiante(LogroEstudiante logroEstudiante){
+	@OneToMany(mappedBy = "boletin", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	private Set<LogroEstudiante> logrosEstudiante;
 
-	}
+    public Boletin(){
 
-	/**
-	 * 
-	 * @param logroEstudiante
-	 */
-	public void eliminarCalificacion(LogroEstudiante calificacion){
+    }
 
-	}
+    public void añadirLogroEstudiante(LogroEstudiante logroEstudiante){
 
-	public void generarBoletin(){
+    }
 
-	}
+    public void eliminarCalificacion(LogroEstudiante calificacion){
+
+    }
+
+    public void generarBoletin(){
+
+    }
 }//end Boletin

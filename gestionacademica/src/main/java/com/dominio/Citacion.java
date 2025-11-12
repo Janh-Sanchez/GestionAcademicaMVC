@@ -1,42 +1,46 @@
 package com.dominio;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.Set;
 
-/**
- * @author lynna
- * @version 1.0
- * @created 03-nov.-2025 5:01:43 p.�m.
- */
+@Entity
 public class Citacion {
 
-	private HashMap<Integer, Acudiente> acudiente;
-	private LocalDate fechaCitacion;
-	private Integer idCitacion;
-	private String motivo;
-	private Set<Notificacion> notificaciones;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idCitacion;
 
-	public Citacion(){
+    @NotBlank
+    @Size(min = 10, max = 200)
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String motivo;
 
-	}
+    @NotNull
+    @Column(nullable = false)
+    private LocalDate fechaCitacion;
 
-	public void finalize() throws Throwable {
+    @ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(
+		name = "citacion_acudiente",
+		joinColumns = @JoinColumn(name = "idCitacion"),
+		inverseJoinColumns = @JoinColumn (name = "idAcudiente")
+	)
+    private Set<Acudiente> acudientes;
 
-	}
-	/**
-	 * 
-	 * @param acudiente
-	 */
-	public void agregarAcudiente(Acudiente acudiente){
+    @OneToMany(mappedBy = "citacion", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Notificacion> notificaciones;
 
-	}
+    public Citacion(){
 
-	/**
-	 * 
-	 * @param acudientes
-	 */
-	public void generarNotificacion(Acudiente acudientes){
+    }
 
-	}
+    public void agregarAcudiente(Acudiente acudiente){
+
+    }
+
+    public void generarNotificacion(Acudiente acudientes){
+
+    }
 }//end Citacion

@@ -1,34 +1,37 @@
 package com.dominio;
 
-import java.util.HashMap;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.util.Set;
 
+@Entity
 public class BibliotecaLogros {
 
-	private String categoria;
-	private Integer idBibliotecaLogros;
-	private HashMap<Integer, Logro> logro;
-	private Logro logros;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idBibliotecaLogros;
 
-	public BibliotecaLogros(){
+    @NotBlank
+    @Size(min = 10, max = 200)
+    @Column(nullable = false, length = 200)
+    private String categoria;
 
-	}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grado", referencedColumnName = "idGrado")
+    private Grado grado;
 
-	public void finalize() throws Throwable {
+    @OneToMany(mappedBy = "bibliotecaLogros", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Logro> logros;
 
-	}
-	/**
-	 * 
-	 * @param logro
-	 */
-	public void añadirLogro(Logro logro){
+    public BibliotecaLogros(){
 
-	}
+    }
 
-	/**
-	 * 
-	 * @param logro
-	 */
-	public void eliminarLogro(Logro logro){
+    public void añadirLogro(Logro logro){
 
-	}
+    }
+
+    public void eliminarLogro(Logro logro){
+
+    }
 }//end BibliotecaLogros

@@ -1,21 +1,38 @@
 package com.dominio;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
+@Entity
 public class Notificacion {
 
-	private String asunto;
-	private Acudiente destinatario;
-	private LocalDate fechaNotificacion;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idNotificacion;
 
-	public Notificacion(){
+    @NotBlank
+    @Size(min = 10, max = 300)
+    @Column(nullable = false, length = 300)
+    private String asunto;
 
-	}
+    @NotNull
+    @Column(nullable = false)
+    private LocalDate fechaNotificacion;
 
-	public void finalize() throws Throwable {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "destinatario", referencedColumnName = "idUsuario")
+    private Acudiente destinatario;
 
-	}
-	public void enviar(){
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "citacion", referencedColumnName = "idCitacion")
+    private Citacion citacion;
 
-	}
+    public Notificacion(){
+
+    }
+
+    public void enviar(){
+
+    }
 }//end Notificacion

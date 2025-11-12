@@ -1,19 +1,34 @@
 package com.dominio;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
+@Entity
 public class Observacion {
 
-	private String descripcion;
-	private LocalDate fechaObservacion;
-	private Integer idObservacion;
-	private Profesor profesor;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idObservacion;
 
-	public Observacion(){
+    @NotBlank
+    @Size(min = 10, max = 200)
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String descripcion;
 
-	}
+    @NotNull
+    @Column(nullable = false)
+    private LocalDate fechaObservacion;
 
-	public void finalize() throws Throwable {
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "observador", referencedColumnName = "idObservador")
+    private Observador observador;
 
-	}
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "profesor", referencedColumnName = "idUsuario")
+    private Profesor profesor;
+
+    public Observacion(){
+
+    }
 }//end Observacion

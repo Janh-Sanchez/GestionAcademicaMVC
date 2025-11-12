@@ -1,26 +1,41 @@
 package com.dominio;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
+@Entity
 public class LogroEstudiante {
 
-	private LocalDate fechaCalificacion;
-	private Integer idCalificacion;
-	private Logro logro;
-	private Profesor profesor;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Integer idLogroEstudiante;
 
-	public LogroEstudiante(){
+    @NotNull
+    @Column(nullable = false)
+    private LocalDate fechaCalificacion;
 
-	}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estudiante", referencedColumnName = "idEstudiante")
+    private Estudiante estudiante;
 
-	public void finalize() throws Throwable {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "boletin", referencedColumnName = "idBoletin")
+    private Boletin boletin;
 
-	}
-	/**
-	 * 
-	 * @param logro
-	 */
-	public void agregarLogro(Logro logro){
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "logro", referencedColumnName = "idLogro")
+    private Logro logro;
 
-	}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profesor", referencedColumnName = "idUsuario")
+    private Profesor profesor;
+
+    public LogroEstudiante(){
+
+    }
+
+    public void agregarLogro(Logro logro){
+
+    }
 }//end LogroEstudiante
