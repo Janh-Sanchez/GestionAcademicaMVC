@@ -1,4 +1,4 @@
-package com.dominio;
+package com.persistencia.entidades;
 
 import jakarta.persistence.*;
 import java.util.SortedSet;

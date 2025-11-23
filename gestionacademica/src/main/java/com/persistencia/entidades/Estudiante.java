@@ -1,6 +1,8 @@
-package com.dominio;
+package com.persistencia.entidades;
 
 import java.util.Set;
+
+import com.dominio.Acudiente;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;

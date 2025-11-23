@@ -1,9 +1,9 @@
-package com.dominio;
+package com.persistencia.entidades;
 
 import jakarta.persistence.*;
 
 @Entity
-public class Directivo extends Usuario {
+public class Directivo extends UsuarioEntity {
 
     public Directivo(){
 

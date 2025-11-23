@@ -1,4 +1,4 @@
-package com.dominio;
+package com.persistencia.entidades;
 
 public enum Estado {
 	Pendiente,

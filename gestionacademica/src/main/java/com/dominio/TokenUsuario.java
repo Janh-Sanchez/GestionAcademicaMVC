@@ -1,36 +1,31 @@
 package com.dominio;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-
-@Entity
 public class TokenUsuario {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer idToken;
-
-    @NotBlank
-    @Size(min = 3, max = 50)
-    @Column(nullable = false, unique = true, length = 50)
     private String nombreUsuario;
-
-    @NotBlank
-    @Size(min = 8, max = 60)
-    @Column(nullable = false, length = 255)
     private String contrasena;
-
-    @Column(nullable = false)
     private boolean estado;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rol")
     private Rol rol;
 
-    @OneToOne(mappedBy = "tokenAccess", fetch = FetchType.LAZY)
-    private Usuario usuario;
-
-    public TokenUsuario(){
-
+    public TokenUsuario(String nombreUsuario, String contrasena, Rol rol) {
+        this.nombreUsuario = nombreUsuario;
+        this.contrasena = contrasena;
+        this.rol = rol;
+        this.estado = true;
     }
-}//end TokenUsuario
+
+    public boolean esActivo() {
+        return this.estado;
+    }
+
+    public Integer getIdToken() { return idToken; }
+    public void setIdToken(Integer idToken) { this.idToken = idToken; }
+    public String getNombreUsuario() { return nombreUsuario; }
+    public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
+    public String getContrasena() { return contrasena; }
+    public void setContrasena(String contrasena) { this.contrasena = contrasena; }
+    public boolean isEstado() { return estado; }
+    public void setEstado(boolean estado) { this.estado = estado; }
+    public Rol getRol() { return rol; }
+    public void setRol(Rol rol) { this.rol = rol; }
+}
