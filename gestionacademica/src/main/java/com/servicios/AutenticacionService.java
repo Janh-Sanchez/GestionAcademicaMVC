@@ -3,7 +3,6 @@ package com.servicios;
 import com.dominio.TokenUsuario;
 import com.persistencia.entidades.TokenUsuarioEntity;
 import com.persistencia.repositorios.TokenUsuarioRepositorio;
-import com.utilidades.PasswordHashUtil;
 import com.persistencia.mappers.DominioAPersistenciaMapper;
 import java.util.Optional;
 
@@ -39,9 +38,8 @@ public class AutenticacionService {
             }
 
             TokenUsuarioEntity tokenEntity = tokenEntityOpt.get();
-            // Verificar contraseña con BCrypt
 
-            if (PasswordHashUtil.checkPassword(tokenEntity.getContrasena(), contrasena)) {
+            if (!contrasena.equals(tokenEntity.getContrasena())) {
                 intentosFallidos++;
                 System.out.println(intentosFallidos);
                 return new ResultadoAutenticacion(false, null, 

@@ -3,12 +3,12 @@ package com.persistencia.entidades;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
-@Entity
+@Entity(name = "usuario")
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public class UsuarioEntity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id_usuario")
     private Integer idUsuario;
 
     @Basic
@@ -48,6 +48,7 @@ public class UsuarioEntity {
     @OneToOne(cascade = CascadeType.ALL, optional = true)
     @JoinColumn(name = "tokenAccess", referencedColumnName = "id_token", nullable = true)
     private TokenUsuarioEntity tokenAccess;
+
     // ✅ SOLO getters y setters
     public Integer getIdUsuario() { return idUsuario; }
     public void setIdUsuario(Integer idUsuario) { this.idUsuario = idUsuario; }

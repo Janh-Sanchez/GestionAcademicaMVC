@@ -86,16 +86,16 @@ public class DominioAPersistenciaMapper {
     public static Usuario toDomain(UsuarioEntity entity) {
         if (entity == null) return null;
         Usuario usuario = new Usuario(
+            entity.getIdUsuario(),
             entity.getPrimerNombre(),
+            entity.getSegundoNombre(),
             entity.getPrimerApellido(),
+            entity.getSegundoApellido(),
             entity.getEdad(),
             entity.getCorreoElectronico(),
-            entity.getTelefono()
+            entity.getTelefono(),
+            toDomain(entity.getTokenAccess())
         );
-        usuario.setIdUsuario(entity.getIdUsuario());
-        usuario.setSegundoNombre(entity.getSegundoNombre());
-        usuario.setSegundoApellido(entity.getSegundoApellido());
-        usuario.setTokenAccess(toDomain(entity.getTokenAccess()));
         return usuario;
     }
 }

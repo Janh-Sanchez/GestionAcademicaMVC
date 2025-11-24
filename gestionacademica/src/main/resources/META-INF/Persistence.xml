@@ -9,7 +9,7 @@
         <!-- Proveedor JPA -->
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
-        <!-- Clases de dominio -->
+        <!-- Clases de Persistencia -->
         <class>com.dominio.Acudiente</class>
         <class>com.dominio.Administrador</class>
         <class>com.dominio.BibliotecaLogros</class>

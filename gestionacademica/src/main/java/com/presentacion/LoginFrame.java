@@ -1,15 +1,19 @@
 package com.presentacion;
 
-import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.*;
 import com.servicios.AutenticacionService;
+
 public class LoginFrame extends JFrame {
     private JTextField txtUsuario;
     private JPasswordField txtContrasena;
     private JButton btnIniciarSesion;
-    private JButton btnRegistrar;
     private JLabel lblError;
     private AutenticacionService autenticacionService;
+    
+    private final Color CB=new Color(255,212,160), CBH=new Color(255,230,180), CT=new Color(58,46,46), CF=new Color(255,243,227);
 
     public LoginFrame(AutenticacionService autenticacionService) {
         this.autenticacionService = autenticacionService;
@@ -22,230 +26,239 @@ public class LoginFrame extends JFrame {
         setSize(900, 600);
         setLocationRelativeTo(null);
         setResizable(false);
+        add(new JPanel(new GridLayout(1, 2)) {{
+            add(crearPanelIzquierdo());
+            add(crearPanelDerecho());
+        }});
+    }
 
-        // Panel principal con dos columnas
-        JPanel panelPrincipal = new JPanel(new GridLayout(1, 2));
+    private JPanel crearPanelIzquierdo() {
+        JPanel p = new JPanel();
+        p.setBackground(CF);
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
 
-        // Panel izquierdo (formulario)
-        JPanel panelIzquierdo = new JPanel();
-        panelIzquierdo.setBackground(new Color(255, 243, 227));
-        panelIzquierdo.setLayout(new BoxLayout(panelIzquierdo, BoxLayout.Y_AXIS));
-        panelIzquierdo.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
-
-        // Título
-        JLabel lblTitulo = new JLabel("¿Ya tienes una cuenta?");
-        lblTitulo.setFont(new Font("Arial", Font.BOLD, 24));
-        lblTitulo.setForeground(new Color(58, 46, 46));
-        lblTitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel lblSubtitulo = new JLabel("¡Bienvenido de vuelta!");
-        lblSubtitulo.setFont(new Font("Arial", Font.PLAIN, 18));
-        lblSubtitulo.setForeground(new Color(58, 46, 46));
-        lblSubtitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        panelIzquierdo.add(lblTitulo);
-        panelIzquierdo.add(Box.createVerticalStrut(10));
-        panelIzquierdo.add(lblSubtitulo);
-        panelIzquierdo.add(Box.createVerticalStrut(40));
-
-        // Campo Usuario
-        JLabel lblUsuario = new JLabel("Usuario");
-        lblUsuario.setForeground(new Color(138, 127, 127));
-        lblUsuario.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(crearLabel("¿Ya tienes una cuenta?", Font.BOLD, 24));
+        p.add(Box.createVerticalStrut(10));
+        p.add(crearLabel("¡Bienvenido de vuelta!", Font.PLAIN, 18));
+        p.add(Box.createVerticalStrut(40));
+        p.add(crearCampoConPlaceholder("Usuario", false));
+        p.add(Box.createVerticalStrut(20));
+        p.add(crearCampoConPlaceholder("Contraseña", true));
+        p.add(Box.createVerticalStrut(30));
         
-        txtUsuario = new JTextField(20);
-        txtUsuario.setMaximumSize(new Dimension(300, 30));
-        txtUsuario.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(58, 46, 46)));
-        txtUsuario.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnIniciarSesion = crearBoton("Iniciar sesión", e -> iniciarSesion());
+        p.add(btnIniciarSesion);
+        p.add(Box.createVerticalStrut(15));
 
-        panelIzquierdo.add(lblUsuario);
-        panelIzquierdo.add(txtUsuario);
-        panelIzquierdo.add(Box.createVerticalStrut(20));
-
-        // Campo Contraseña
-        JLabel lblContrasena = new JLabel("Contraseña");
-        lblContrasena.setForeground(new Color(138, 127, 127));
-        lblContrasena.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        txtContrasena = new JPasswordField(20);
-        txtContrasena.setMaximumSize(new Dimension(300, 30));
-        txtContrasena.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(58, 46, 46)));
-        txtContrasena.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        panelIzquierdo.add(lblContrasena);
-        panelIzquierdo.add(txtContrasena);
-        panelIzquierdo.add(Box.createVerticalStrut(30));
-
-        // Botón Iniciar Sesión
-        btnIniciarSesion = new JButton("Iniciar sesión");
-        btnIniciarSesion.setBackground(new Color(255, 209, 154));
-        btnIniciarSesion.setForeground(new Color(58, 46, 46));
-        btnIniciarSesion.setFont(new Font("Arial", Font.BOLD, 16));
-        btnIniciarSesion.setFocusPainted(false);
-        btnIniciarSesion.setMaximumSize(new Dimension(300, 40));
-        btnIniciarSesion.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnIniciarSesion.addActionListener(e -> iniciarSesion());
-
-        panelIzquierdo.add(btnIniciarSesion);
-        panelIzquierdo.add(Box.createVerticalStrut(15));
-
-        // Label de error
         lblError = new JLabel("");
         lblError.setForeground(Color.RED);
         lblError.setFont(new Font("Arial", Font.PLAIN, 12));
         lblError.setAlignmentX(Component.CENTER_ALIGNMENT);
         lblError.setVisible(false);
+        p.add(lblError);
+        p.add(Box.createVerticalStrut(30));
 
-        panelIzquierdo.add(lblError);
-        panelIzquierdo.add(Box.createVerticalStrut(30));
+        JPanel pr = new JPanel() {{
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            setBackground(CF);
+            setAlignmentX(Component.CENTER_ALIGNMENT);
+        }};
 
-        // Sección de registro
-        JLabel lblPregunta = new JLabel("¿Te interesa registrar a tus hijos en nuestra institución?");
-        lblPregunta.setForeground(new Color(58, 46, 46));
-        lblPregunta.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel lp = new JLabel("<html><center>¿Te interesa registrar a tus hijos<br>en nuestra institución?</center></html>", SwingConstants.CENTER);
+        lp.setFont(new Font("Arial", Font.BOLD, 16));
+        lp.setForeground(CT);
+        lp.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        btnRegistrar = new JButton("REGISTRARSE");
-        btnRegistrar.setBackground(new Color(255, 209, 154));
-        btnRegistrar.setForeground(new Color(58, 46, 46));
-        btnRegistrar.setFont(new Font("Arial", Font.BOLD, 16));
-        btnRegistrar.setFocusPainted(false);
-        btnRegistrar.setMaximumSize(new Dimension(300, 40));
-        btnRegistrar.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnRegistrar.addActionListener(e -> registrarse());
+        pr.add(lp);
+        pr.add(Box.createVerticalStrut(15));
+        pr.add(crearBoton("REGISTRARSE", e -> registrarse()));
+        pr.add(Box.createVerticalStrut(15));
 
-        JLabel lblFinal = new JLabel("<html>No esperes más <span style='color: red;'>¡Únete ahora!</span></html>");
-        lblFinal.setForeground(new Color(58, 46, 46));
-        lblFinal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel lf = new JLabel("<html><center>No esperes más <span style='color: red;'>¡Únete ahora!</span></center></html>", SwingConstants.CENTER);
+        lf.setFont(new Font("Arial", Font.BOLD, 16));
+        lf.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pr.add(lf);
+        p.add(pr);
+        return p;
+    }
 
-        panelIzquierdo.add(lblPregunta);
-        panelIzquierdo.add(Box.createVerticalStrut(10));
-        panelIzquierdo.add(btnRegistrar);
-        panelIzquierdo.add(Box.createVerticalStrut(10));
-        panelIzquierdo.add(lblFinal);
+    private JPanel crearPanelDerecho() {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBackground(new Color(255, 220, 180));
+        java.net.URL url = getClass().getResource("/imagenes/imagenLogin.jpg");
+        JLabel l = url != null ? new JLabel(new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(450, 600, Image.SCALE_SMOOTH))) 
+                  : new JLabel("Bienvenido al Sistema Académico", SwingConstants.CENTER) {{
+                        setFont(new Font("Arial", Font.BOLD, 18));
+                        setForeground(new Color(100, 100, 100));
+                    }};
+        l.setHorizontalAlignment(SwingConstants.CENTER);
+        p.add(l, BorderLayout.CENTER);
+        return p;
+    }
 
-        // Panel derecho (imagen)
-        JPanel panelDerecho = new JPanel();
-        panelDerecho.setBackground(new Color(255, 220, 180));
-        JLabel lblImagen = new JLabel("Imagen: Profesora leyendo con niños", SwingConstants.CENTER);
-        lblImagen.setFont(new Font("Arial", Font.ITALIC, 16));
-        lblImagen.setForeground(new Color(100, 100, 100));
-        panelDerecho.add(lblImagen);
+    private JPanel crearCampoConPlaceholder(String placeholder, boolean esPassword) {
+        JPanel pc = new JPanel(new BorderLayout());
+        pc.setBackground(CF);
+        pc.setMaximumSize(new Dimension(300, 40));
 
-        panelPrincipal.add(panelIzquierdo);
-        panelPrincipal.add(panelDerecho);
+        JComponent c = esPassword ? new JPasswordField() : new JTextField();
+        ((JTextField)c).setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0,0,2,0,CT),
+            BorderFactory.createEmptyBorder(5,10,5,10)
+        ));
+        c.setBackground(new Color(255,255,255,200));
+        c.setFont(new Font("Arial", Font.PLAIN, 14));
+        c.setForeground(CT);
 
-        add(panelPrincipal);
+        JLabel lp = new JLabel(placeholder);
+        lp.setForeground(new Color(138,127,127,180));
+        lp.setFont(new Font("Arial", Font.ITALIC, 14));
+        lp.setBorder(BorderFactory.createEmptyBorder(0,12,0,0));
+        
+        JLayeredPane lyr = new JLayeredPane();
+        lyr.setPreferredSize(new Dimension(300,40));
+        lyr.setMaximumSize(new Dimension(300,40));
+        c.setBounds(0,0,300,40);
+        lp.setBounds(0,0,300,40);
+        lyr.add(c, JLayeredPane.DEFAULT_LAYER);
+        lyr.add(lp, JLayeredPane.PALETTE_LAYER);
+        pc.add(lyr, BorderLayout.CENTER);
 
-        // Enter en los campos para iniciar sesión
-        txtUsuario.addActionListener(e -> txtContrasena.requestFocus());
-        txtContrasena.addActionListener(e -> iniciarSesion());
+        if(esPassword) {
+            JPasswordField pwd=(JPasswordField)c;
+            pwd.addCaretListener(e->lp.setVisible(pwd.getPassword().length==0));
+            txtContrasena=pwd;
+            pwd.addActionListener(e->iniciarSesion());
+        }else{
+            JTextField txt=(JTextField)c;
+            txt.addCaretListener(e->lp.setVisible(txt.getText().isEmpty()));
+            txtUsuario=txt;
+            txt.addActionListener(e->txtContrasena.requestFocus());
+        }
+        return pc;
+    }
+
+    private JButton crearBoton(String t, java.awt.event.ActionListener a) {
+        JButton b = new JButton(t);
+        b.setBackground(CB);
+        b.setForeground(CT);
+        b.setFont(new Font("Arial", Font.BOLD, 16));
+        b.setFocusPainted(false);
+        b.setBorderPainted(false);
+        b.setMaximumSize(new Dimension(300,40));
+        b.setAlignmentX(Component.CENTER_ALIGNMENT);
+        b.addActionListener(a);
+        b.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e){b.setBackground(CBH);}
+            public void mouseExited(MouseEvent e){b.setBackground(CB);}
+        });
+        return b;
+    }
+
+    private JLabel crearLabel(String t, int s, int z) {
+        JLabel l = new JLabel(t);
+        l.setFont(new Font("Arial", s, z));
+        l.setForeground(CT);
+        l.setAlignmentX(Component.CENTER_ALIGNMENT);
+        return l;
     }
 
     private void iniciarSesion() {
-        String usuario = txtUsuario.getText().trim();
-        String contrasena = new String(txtContrasena.getPassword());
-
-        AutenticacionService.ResultadoAutenticacion resultado = 
-            autenticacionService.iniciarSesion(usuario, contrasena);
-
-        if (resultado.isExitoso()) {
+        AutenticacionService.ResultadoAutenticacion r=autenticacionService.iniciarSesion(txtUsuario.getText().trim(), new String(txtContrasena.getPassword()));
+        if(r.isExitoso()) {
             lblError.setVisible(false);
-            mostrarMensajeExito(resultado.getMensaje());
-            // Aquí se abriría la ventana principal según el rol
-        } else {
-            mostrarError(resultado.getMensaje());
-            
-            // Verificar si se alcanzó el límite de intentos
-            if (autenticacionService.getIntentosFallidos() >= 3) {
+            mostrarDialogoGrande("Éxito", r.getMensaje(), "✓", new Color(76,175,80), null);
+        }else{
+            mostrarError(r.getMensaje());
+            if(autenticacionService.getIntentosFallidos()>=3) {
                 btnIniciarSesion.setEnabled(false);
-                btnIniciarSesion.setBackground(new Color(207, 207, 207));
-                btnIniciarSesion.setForeground(new Color(122, 122, 122));
+                btnIniciarSesion.setBackground(new Color(207,207,207));
             }
         }
     }
 
-    private void mostrarError(String mensaje) {
-        if (mensaje.contains("base de datos")) {
-            mostrarDialogoError("ERROR", mensaje);
-        } else {
-            lblError.setText(mensaje);
+    private void mostrarError(String m) {
+        if(m.contains("campos") || m.contains("vacío")) {
+            lblError.setText(m);
             lblError.setVisible(true);
+        } else {
+            mostrarDialogoGrande("ERROR", m, "⊗", new Color(255,77,77), "/imagenes/icono_error.jpg");
         }
     }
 
-    private void mostrarDialogoError(String titulo, String mensaje) {
-        JDialog dialogo = new JDialog(this, titulo, true);
-        dialogo.setLayout(new BorderLayout(10, 10));
-        dialogo.setSize(400, 200);
-        dialogo.setLocationRelativeTo(this);
+    private void mostrarDialogoGrande(String t, String m, String i, Color c, String rutaImg) {
+        JDialog d = new JDialog(this, t, true);
+        d.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        d.setUndecorated(true);
+        d.setLayout(new BorderLayout(10,10));
+        d.setSize(500,400);
+        d.setLocationRelativeTo(this);
 
-        JPanel panelContenido = new JPanel(new BorderLayout(10, 10));
-        panelContenido.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JPanel pc = new JPanel(new BorderLayout(10,10));
+        pc.setBackground(Color.WHITE);
+        pc.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
 
-        // Icono de error
-        JLabel lblIcono = new JLabel("⊗", SwingConstants.CENTER);
-        lblIcono.setFont(new Font("Arial", Font.BOLD, 60));
-        lblIcono.setForeground(new Color(255, 77, 77));
+        // Panel para imagen (si existe)
+        JPanel pImg = new JPanel();
+        pImg.setBackground(Color.WHITE);
+        boolean tieneImg = false;
+        if(rutaImg != null) {
+            java.net.URL url = getClass().getResource(rutaImg);
+            if(url != null) {
+                ImageIcon icon = new ImageIcon(url);
+                Image img = icon.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
+                JLabel lImg = new JLabel(new ImageIcon(img));
+                pImg.add(lImg);
+                tieneImg = true;
+            }
+        }
 
-        // Mensaje
-        JLabel lblMensaje = new JLabel("<html><center>" + mensaje + "</center></html>", SwingConstants.CENTER);
-        lblMensaje.setFont(new Font("Arial", Font.PLAIN, 14));
+        JPanel pCentral = new JPanel();
+        pCentral.setLayout(new BoxLayout(pCentral, BoxLayout.Y_AXIS));
+        pCentral.setBackground(Color.WHITE);
 
-        // Botón Aceptar
-        JButton btnAceptar = new JButton("Aceptar");
-        btnAceptar.setBackground(new Color(255, 209, 154));
-        btnAceptar.setForeground(new Color(58, 46, 46));
-        btnAceptar.setFont(new Font("Arial", Font.BOLD, 14));
-        btnAceptar.addActionListener(e -> dialogo.dispose());
+        JLabel li = new JLabel(i, SwingConstants.CENTER);
+        li.setFont(new Font("Arial", Font.BOLD, 100));
+        li.setForeground(c);
+        li.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        panelContenido.add(lblIcono, BorderLayout.NORTH);
-        panelContenido.add(lblMensaje, BorderLayout.CENTER);
-        panelContenido.add(btnAceptar, BorderLayout.SOUTH);
+        JLabel lt = new JLabel(t);
+        lt.setFont(new Font("Arial", Font.BOLD, 24));
+        lt.setForeground(c);
+        lt.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        dialogo.add(panelContenido);
-        dialogo.setVisible(true);
-    }
+        JLabel lm = new JLabel("<html><center>"+m+"</center></html>");
+        lm.setFont(new Font("Arial", Font.BOLD, 16));
+        lm.setForeground(CT);
+        lm.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-    private void mostrarMensajeExito(String mensaje) {
-        JDialog dialogo = new JDialog(this, "Éxito", true);
-        dialogo.setLayout(new BorderLayout(10, 10));
-        dialogo.setSize(400, 200);
-        dialogo.setLocationRelativeTo(this);
+        pCentral.add(pImg);
+        if(tieneImg) pCentral.add(Box.createVerticalStrut(15));
+        
+        // Solo mostrar ícono si NO hay imagen
+        if(!tieneImg) {
+            pCentral.add(li);
+            pCentral.add(Box.createVerticalStrut(10));
+        }
+        
+        pCentral.add(lt);
+        pCentral.add(Box.createVerticalStrut(20));
+        pCentral.add(lm);
+        pCentral.add(Box.createVerticalGlue());
 
-        JPanel panelContenido = new JPanel(new BorderLayout(10, 10));
-        panelContenido.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JPanel pBoton = new JPanel();
+        pBoton.setBackground(Color.WHITE);
+        pBoton.add(crearBoton("Aceptar", e->d.dispose()));
 
-        // Icono de éxito
-        JLabel lblIcono = new JLabel("✓", SwingConstants.CENTER);
-        lblIcono.setFont(new Font("Arial", Font.BOLD, 60));
-        lblIcono.setForeground(new Color(76, 175, 80));
+        pc.add(pCentral, BorderLayout.CENTER);
+        pc.add(pBoton, BorderLayout.SOUTH);
 
-        // Mensaje
-        JLabel lblMensaje = new JLabel("<html><center>" + mensaje + "</center></html>", SwingConstants.CENTER);
-        lblMensaje.setFont(new Font("Arial", Font.PLAIN, 14));
-
-        // Botón Aceptar
-        JButton btnAceptar = new JButton("Aceptar");
-        btnAceptar.setBackground(new Color(255, 209, 154));
-        btnAceptar.setForeground(new Color(58, 46, 46));
-        btnAceptar.setFont(new Font("Arial", Font.BOLD, 14));
-        btnAceptar.addActionListener(e -> {
-            dialogo.dispose();
-            // Aquí se abriría la ventana principal según el rol
-        });
-
-        panelContenido.add(lblIcono, BorderLayout.NORTH);
-        panelContenido.add(lblMensaje, BorderLayout.CENTER);
-        panelContenido.add(btnAceptar, BorderLayout.SOUTH);
-
-        dialogo.add(panelContenido);
-        dialogo.setVisible(true);
+        d.add(pc);
+        d.setVisible(true);
     }
 
     private void registrarse() {
-        JOptionPane.showMessageDialog(this, 
-            "Funcionalidad de registro en desarrollo", 
-            "Registro", 
-            JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, "Funcionalidad de registro en desarrollo", "Registro", JOptionPane.INFORMATION_MESSAGE);
     }
 }
