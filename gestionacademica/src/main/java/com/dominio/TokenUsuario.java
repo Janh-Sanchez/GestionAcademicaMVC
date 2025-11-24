@@ -12,12 +12,28 @@ public class TokenUsuario {
         this.rol = rol;
     }
 
+    // Verificar credenciales
+    public boolean verificarCredenciales(String contrasenaPrueba) {
+
+        if (contrasenaPrueba == null || contrasenaPrueba.isEmpty()) {
+            return false;
+        }
+        
+        boolean credencialesCorrectas = this.contrasena.equals(contrasenaPrueba);
+        return credencialesCorrectas;
+    }
+
+    // Getters y Setters
     public Integer getIdToken() { return idToken; }
     public void setIdToken(Integer idToken) { this.idToken = idToken; }
+    
     public String getNombreUsuario() { return nombreUsuario; }
     public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
+    
     public String getContrasena() { return contrasena; }
     public void setContrasena(String contrasena) { this.contrasena = contrasena; }
+
     public Rol getRol() { return rol; }
     public void setRol(Rol rol) { this.rol = rol; }
+
 }

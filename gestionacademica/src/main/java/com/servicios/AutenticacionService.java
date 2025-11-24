@@ -1,10 +1,11 @@
 package com.servicios;
 
+import java.util.Optional;
+
 import com.dominio.TokenUsuario;
 import com.persistencia.entidades.TokenUsuarioEntity;
-import com.persistencia.repositorios.TokenUsuarioRepositorio;
 import com.persistencia.mappers.DominioAPersistenciaMapper;
-import java.util.Optional;
+import com.persistencia.repositorios.TokenUsuarioRepositorio;
 
 public class AutenticacionService {
     private final TokenUsuarioRepositorio tokenRepositorio;
@@ -19,7 +20,8 @@ public class AutenticacionService {
         // Validar campos vacíos
         if (nombreUsuario == null || nombreUsuario.trim().isEmpty() ||
             contrasena == null || contrasena.trim().isEmpty()) {
-            return new ResultadoAutenticacion(false, null, "Por favor, llene todos los campos");
+            return new ResultadoAutenticacion(false, null, 
+                "Por favor, llene todos los campos");
         }
 
         // Verificar intentos
@@ -29,28 +31,28 @@ public class AutenticacionService {
         }
 
         try {
-            Optional<TokenUsuarioEntity> tokenEntityOpt = tokenRepositorio.buscarPorNombreUsuario(nombreUsuario);
+            // Buscar token en BD
+            Optional<TokenUsuarioEntity> tokenEntityOpt = 
+                tokenRepositorio.buscarPorNombreUsuario(nombreUsuario);
             
             if (tokenEntityOpt.isEmpty()) {
-                intentosFallidos++;
                 return new ResultadoAutenticacion(false, null, 
                     "Usuario o contraseña incorrectos, inténtelo nuevamente");
             }
 
-            TokenUsuarioEntity tokenEntity = tokenEntityOpt.get();
+            // Convertir a dominio
+            TokenUsuario token = DominioAPersistenciaMapper.toDomain(tokenEntityOpt.get());
 
-            if (!contrasena.equals(tokenEntity.getContrasena())) {
+            // EL OBJETO SE VALIDA A SÍ MISMO
+            if (!token.verificarCredenciales(contrasena)) {
                 intentosFallidos++;
-                return new ResultadoAutenticacion(false, null, 
-                    "Usuario o contraseña incorrectos, inténtelo nuevamente");
+                String mensaje = ("Usuario o contraseña incorrectos, inténtelo nuevamente");
+                return new ResultadoAutenticacion(false, null, mensaje);
             }
 
-            // Autenticación exitosa
             intentosFallidos = 0;
-            TokenUsuario tokenDomain = DominioAPersistenciaMapper.toDomain(tokenEntity);
-            
-            return new ResultadoAutenticacion(true, tokenDomain, 
-                "Inicio de sesión exitoso con rol: " + tokenDomain.getRol().getNombre());
+            return new ResultadoAutenticacion(true, token, 
+                "Inicio de sesión exitoso con rol: " + token.getRol().getNombre());
 
         } catch (Exception e) {
             return new ResultadoAutenticacion(false, null, 
@@ -58,12 +60,8 @@ public class AutenticacionService {
         }
     }
 
-    public int getIntentosFallidos() {
+    public int getIntentosFallidos(){
         return intentosFallidos;
-    }
-
-    public void resetearIntentos() {
-        intentosFallidos = 0;
     }
 
     public static class ResultadoAutenticacion {

@@ -2,6 +2,7 @@ package com.dominio;
 
 import java.util.HashSet;
 import java.util.Set;
+
 public class Rol {
     private Integer idRol;
     private String nombre;
@@ -12,21 +13,19 @@ public class Rol {
         this.permisos = new HashSet<>();
     }
 
-    public boolean agregarPermiso(Permiso permiso) {
-        if (permiso != null && permiso.esValido() && !permisos.contains(permiso)) {
-            return permisos.add(permiso);
-        }
-        return false;
-    }
-
-    public boolean tienePermiso(Permiso permiso) {
-        return permisos.contains(permiso);
+    // Validar rol
+    public boolean esValido() {
+        return nombre != null && 
+               !nombre.trim().isEmpty() && 
+               nombre.length() >= 3 && 
+               nombre.length() <= 50 &&
+               !permisos.isEmpty();
     }
 
     public Integer getIdRol() { return idRol; }
     public void setIdRol(Integer idRol) { this.idRol = idRol; }
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
-    public Set<Permiso> getPermisos() { return permisos; }
+    public Set<Permiso> getPermisos() { return new HashSet<>(permisos); }
     public void setPermisos(Set<Permiso> permisos) { this.permisos = permisos; }
 }
