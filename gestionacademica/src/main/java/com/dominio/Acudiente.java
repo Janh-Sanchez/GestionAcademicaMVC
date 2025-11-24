@@ -2,16 +2,16 @@ package com.dominio;
 
 import java.util.Set;
 
-import com.persistencia.entidades.Estado;
-import com.persistencia.entidades.Estudiante;
-
 public class Acudiente extends Usuario {
 
 	private Estado estadoAprobacion = Estado.Pendiente;
 	private Set<Estudiante> estudiantes;
 
-	public Acudiente(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido, String segundoApellido, String correoElectronico, int edad, String telefono, TokenUsuario tokenAccess){
-		super(idUsuario, primerNombre, segundoNombre, primerApellido, segundoApellido, correoElectronico, edad, telefono, tokenAccess);
+	public Acudiente(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido, 
+        String segundoApellido, int edad, String correoElectronico, String telefono, TokenUsuario tokenAccess, Estado estadoAprobacion,  Set<Estudiante> estudiantes){
+		super(idUsuario, primerNombre, segundoNombre, primerApellido, segundoApellido, edad, correoElectronico, telefono, tokenAccess);
+		this.estadoAprobacion = estadoAprobacion;
+		this.estudiantes = estudiantes;
 	}
 
 	public void agregarEstudiante(Estudiante estudiante) throws Exception{
@@ -35,4 +35,4 @@ public class Acudiente extends Usuario {
 	public Set<Estudiante> getEstudiantes(){
 		return estudiantes;
 	}
-}//end Acudiente
+}

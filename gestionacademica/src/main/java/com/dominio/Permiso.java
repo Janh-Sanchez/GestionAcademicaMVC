@@ -10,6 +10,9 @@ public class Permiso {
         this.descripcion = descripcion;
     }
 
+    public Permiso() {
+    }
+
     public boolean esValido() {
         return nombre != null && !nombre.trim().isEmpty() 
             && nombre.length() >= 3 && nombre.length() <= 50
