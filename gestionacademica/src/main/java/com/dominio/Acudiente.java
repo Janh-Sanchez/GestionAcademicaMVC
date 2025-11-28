@@ -14,7 +14,11 @@ public class Acudiente extends Usuario {
 		this.estudiantes = estudiantes;
 	}
 
-	public void agregarEstudiante(Estudiante estudiante) throws Exception{
+	public Acudiente() {
+		super();
+    }
+
+    public void agregarEstudiante(Estudiante estudiante) throws Exception{
 		if(this.estudiantes.size() >= 5){
 			throw new Exception("Un acudiente no puede tener mas de 5 estudiantes");
 		}

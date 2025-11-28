@@ -98,10 +98,10 @@ public class DominioAPersistenciaMapper {
         );
         return usuario;
     }
-
-    public static AcudienteEntity toEntity(Acudiente acudiente){
+    
+    // ----------------- SHALLOW: Acudiente -----------------
+    public static AcudienteEntity toEntityShallow(Acudiente acudiente){
         if(acudiente == null) return null;
-
         AcudienteEntity acudienteEntity = new AcudienteEntity();
         acudienteEntity.setIdUsuario(acudiente.getIdUsuario());
         acudienteEntity.setPrimerNombre(acudiente.getPrimerNombre());
@@ -111,39 +111,32 @@ public class DominioAPersistenciaMapper {
         acudienteEntity.setEdad(acudiente.getEdad());
         acudienteEntity.setCorreoElectronico(acudiente.getCorreoElectronico());
         acudienteEntity.setTelefono(acudiente.getTelefono());
+        // usa token shallow para evitar ciclos si token apunta al usuario/rol
         acudienteEntity.setTokenAccess(toEntity(acudiente.getTokenAccess()));
         acudienteEntity.setEstadoAprobacion(acudiente.getEstadoAprobacion());
-        acudienteEntity.setEstudiantes(acudiente.getEstudiantes().stream()
-    .map(DominioAPersistenciaMapper::toEntity).collect(Collectors.toSet()));
+        // IMPORTANTE: NO setEstudiantes(...) aquí — cortamos la relación inversa
         return acudienteEntity;
     }
-    public static Acudiente toDomain(AcudienteEntity acudienteEntity) {
-        if (acudienteEntity == null) return null;
 
-        // ✅ CORREGIDO: Convertir estudiantes primero
-        Set<Estudiante> estudiantesDominio = null;
-        if (acudienteEntity.getEstudiantes() != null) {
-            estudiantesDominio = acudienteEntity.getEstudiantes().stream()
-                .map(estEntity -> toDomain(estEntity))
-                .collect(Collectors.toSet());
-        }
+    public static Acudiente toDomainShallow(AcudienteEntity entity) {
+        if (entity == null) return null;
+        Acudiente a = new Acudiente();
+        a.setIdUsuario(entity.getIdUsuario());
+        a.setPrimerNombre(entity.getPrimerNombre());
+        a.setSegundoNombre(entity.getSegundoNombre());
+        a.setPrimerApellido(entity.getPrimerApellido());
+        a.setSegundoApellido(entity.getSegundoApellido());
+        a.setEdad(entity.getEdad());
+        a.setCorreoElectronico(entity.getCorreoElectronico());
+        a.setTelefono(entity.getTelefono());
+        a.setTokenAccess(toDomain(entity.getTokenAccess()));
+        a.setEstadoAprobacion(entity.getEstadoAprobacion());
 
-        Acudiente acudiente = new Acudiente(
-            acudienteEntity.getIdUsuario(),
-            acudienteEntity.getPrimerNombre(),
-            acudienteEntity.getSegundoNombre(),
-            acudienteEntity.getPrimerApellido(),
-            acudienteEntity.getSegundoApellido(),
-            acudienteEntity.getEdad(),
-            acudienteEntity.getCorreoElectronico(),
-            acudienteEntity.getTelefono(),
-            toDomain(acudienteEntity.getTokenAccess()),
-            acudienteEntity.getEstadoAprobacion(),
-            estudiantesDominio
-        );
-        
-        return acudiente;
+        // NO setEstudiantes(...) — la colección inversa se omite en el mapping shallow
+        return a;
     }
+
+    // ESTUDIANTE MAPPERS
 
     public static EstudianteEntity toEntity(Estudiante estudiante){
         if(estudiante == null) return null;
@@ -160,7 +153,7 @@ public class DominioAPersistenciaMapper {
         
         // Relaciones - solo si no son nulas para evitar lazy loading innecesario
         if(estudiante.getAcudiente() != null) {
-            estudianteEntity.setAcudiente(toEntity(estudiante.getAcudiente()));
+            estudianteEntity.setAcudiente(toEntityShallow(estudiante.getAcudiente()));
         }
         if(estudiante.getGradoAspira() != null) {
             estudianteEntity.setGradoAspira(toEntity(estudiante.getGradoAspira()));
@@ -212,7 +205,7 @@ public class DominioAPersistenciaMapper {
         
         // Relaciones - solo si no son nulas
         if(estudianteEntity.getAcudiente() != null) {
-            estudiante.setAcudiente(toDomain(estudianteEntity.getAcudiente()));
+            estudiante.setAcudiente(toDomainShallow(estudianteEntity.getAcudiente()));
         }
         if(estudianteEntity.getGradoAspira() != null) {
             estudiante.setGradoAspira(toDomain(estudianteEntity.getGradoAspira()));
@@ -510,7 +503,7 @@ public class DominioAPersistenciaMapper {
         entity.setEstado(preinscripcion.getEstado());
         
         if (preinscripcion.getAcudiente() != null) {
-            entity.setAcudiente(toEntity(preinscripcion.getAcudiente()));
+            entity.setAcudiente(toEntityShallow(preinscripcion.getAcudiente()));
         }
         
         if (preinscripcion.getEstudiantes() != null) {
@@ -527,7 +520,7 @@ public class DominioAPersistenciaMapper {
     public static Preinscripcion toDomain(PreinscripcionEntity entity) {
         if (entity == null) return null;
         
-        Acudiente acudiente = entity.getAcudiente() != null ? toDomain(entity.getAcudiente()) : null;
+        Acudiente acudiente = entity.getAcudiente() != null ? toDomainShallow(entity.getAcudiente()) : null;
         
         java.util.SortedSet<Estudiante> estudiantes = null;
         if (entity.getEstudiantes() != null) {

@@ -25,6 +25,9 @@ public class Usuario {
         this.tokenAccess = tokenAccess;
     }
 
+    public Usuario() {
+    }
+
     public String obtenerNombreCompleto() {
         StringBuilder nombre = new StringBuilder(primerNombre);
         if (segundoNombre != null && !segundoNombre.isEmpty()) {
