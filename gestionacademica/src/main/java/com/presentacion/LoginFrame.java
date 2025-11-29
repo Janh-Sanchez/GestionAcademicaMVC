@@ -3,7 +3,10 @@ package com.presentacion;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Optional;
+
 import javax.swing.*;
+import com.dominio.*;
 import com.servicios.AutenticacionService;
 
 public class LoginFrame extends JFrame {
@@ -165,17 +168,86 @@ public class LoginFrame extends JFrame {
     }
 
     private void iniciarSesion() {
-        AutenticacionService.ResultadoAutenticacion r=autenticacionService.iniciarSesion(txtUsuario.getText().trim(), new String(txtContrasena.getPassword()));
-        if(r.isExitoso()) {
-            lblError.setVisible(false);
-            mostrarDialogoGrande("Éxito", r.getMensaje(), "✓", new Color(76,175,80), null);
-        }else{
-            mostrarError(r.getMensaje());
-            if(autenticacionService.getIntentosFallidos()>=3) {
-                btnIniciarSesion.setEnabled(false);
-                btnIniciarSesion.setBackground(new Color(207,207,207));
-            }
+        String usuario = txtUsuario.getText().trim();
+        String contrasena = new String(txtContrasena.getPassword());
+        
+        if (usuario.isEmpty() || contrasena.isEmpty()) {
+            mostrarError("Por favor, llene todos los campos");
+            return;
         }
+
+        try {
+            Optional<TokenUsuario> tokenOptional = autenticacionService.iniciarSesion(usuario, contrasena);
+            
+            if (tokenOptional.isPresent()) {
+                // Login exitoso
+                lblError.setVisible(false);
+                TokenUsuario tokenUsuario = tokenOptional.get();
+                this.dispose();
+                navegarPorRol(tokenUsuario);
+            } else {
+                // Credenciales incorrectas
+                int intentosRestantes = autenticacionService.getIntentosRestantes();
+                String mensaje = "Usuario o contraseña incorrectos";
+                
+                if (intentosRestantes > 0) {
+                    mensaje += ". Intentos restantes: " + intentosRestantes;
+                }
+                
+                mostrarError(mensaje);
+                verificarBloqueo();
+            }
+            
+        } catch (IllegalStateException e) {
+            // Límite de intentos alcanzado
+            mostrarError(e.getMessage());
+            btnIniciarSesion.setEnabled(false);
+            btnIniciarSesion.setBackground(new Color(207, 207, 207));
+            
+        } catch (RuntimeException e) {
+            mostrarError("Error del sistema. Por favor, intente más tarde");
+        }
+    }
+
+    private void verificarBloqueo() {
+        if (autenticacionService.getIntentosFallidos() >= 3) {
+            btnIniciarSesion.setEnabled(false);
+            btnIniciarSesion.setBackground(new Color(207, 207, 207));
+            mostrarError("Cuenta bloqueada temporalmente por seguridad");
+        }
+    }
+
+    private void navegarPorRol(TokenUsuario token) {
+        String nombreRol = token.getRol().getNombre().toLowerCase();
+        
+        SwingUtilities.invokeLater(() -> {
+            JFrame ventanaDestino = null;
+            
+            switch (nombreRol) {
+                case "administrador":
+                    ventanaDestino = new AdministradorFrame();
+                    break;
+                case "directivo":
+                    ventanaDestino = new DirectivoFrame();
+                    break;
+                case "acudiente":
+                    ventanaDestino = new AcudienteFrame();
+                    break;
+                case "profesor":
+                    ventanaDestino = new ProfesorFrame();
+                    break;
+                default:
+                    JOptionPane.showMessageDialog(null,
+                        "Rol no reconocido: " + nombreRol,
+                        "Error de navegación",
+                        JOptionPane.ERROR_MESSAGE);
+                    return;
+            }
+            
+            if (ventanaDestino != null) {
+                ventanaDestino.setVisible(true);
+            }
+        });
     }
 
     private void mostrarError(String m) {
@@ -199,7 +271,6 @@ public class LoginFrame extends JFrame {
         pc.setBackground(Color.WHITE);
         pc.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
 
-        // Panel para imagen (si existe)
         JPanel pImg = new JPanel();
         pImg.setBackground(Color.WHITE);
         boolean tieneImg = false;
@@ -236,7 +307,6 @@ public class LoginFrame extends JFrame {
         pCentral.add(pImg);
         if(tieneImg) pCentral.add(Box.createVerticalStrut(15));
         
-        // Solo mostrar ícono si NO hay imagen
         if(!tieneImg) {
             pCentral.add(li);
             pCentral.add(Box.createVerticalStrut(10));

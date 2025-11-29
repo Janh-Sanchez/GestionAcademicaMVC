@@ -9,6 +9,10 @@ public class Profesor extends Usuario{
         this.grupoAsignado = grupoAsignado;
 	}
 
+    public Profesor(){
+        super();
+    }
+
     public Grupo getGrupo(){
         return grupoAsignado;
     }

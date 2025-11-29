@@ -1,4 +1,4 @@
-package com.example;
+package com.aplicacion;
 
 import jakarta.persistence.EntityManager;
 import com.presentacion.LoginFrame;
