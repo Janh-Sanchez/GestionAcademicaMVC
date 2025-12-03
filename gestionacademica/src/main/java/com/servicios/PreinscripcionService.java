@@ -27,7 +27,6 @@ public class PreinscripcionService {
     private final EntityManager entityManager;
     
     // Constantes de validación
-    private static final int MAX_ESTUDIANTES_POR_ACUDIENTE = 4;
     private static final int MIN_EDAD_ACUDIENTE = 18;
     private static final int MAX_EDAD_ACUDIENTE = 80;
     private static final int MIN_EDAD_ESTUDIANTE = 3;
@@ -239,18 +238,19 @@ public class PreinscripcionService {
      * RF 3.1 - Proporcionar formulario de preinscripción
      * RF 3.2 - Preinscribir a más de un estudiante
      */
-    public Preinscripcion registrarPreinscripcion(
+   public Preinscripcion registrarPreinscripcion(
             Acudiente acudiente, 
             Set<Estudiante> estudiantes) throws Exception {
         
-        // Validar límite de estudiantes
+        // Validar límite de estudiantes usando el modelo de dominio
         if (estudiantes == null || estudiantes.isEmpty()) {
             throw new IllegalArgumentException("Debe registrar al menos un estudiante");
         }
         
-        if (estudiantes.size() > MAX_ESTUDIANTES_POR_ACUDIENTE) {
+        // Validar usando el método del modelo de dominio
+        if (estudiantes.size() > Acudiente.MAX_ESTUDIANTES) {
             throw new IllegalArgumentException(
-                "Solo puede inscribir máximo " + MAX_ESTUDIANTES_POR_ACUDIENTE + " estudiantes");
+                "Solo puede inscribir máximo " + Acudiente.MAX_ESTUDIANTES + " estudiantes");
         }
         
         EntityTransaction transaction = entityManager.getTransaction();
@@ -283,7 +283,15 @@ public class PreinscripcionService {
             // 4. Guardar estudiantes y asignarles la preinscripción
             Set<Estudiante> estudiantesGuardados = new HashSet<>();
             
+            // Validar cada estudiante usando el modelo de dominio
             for (Estudiante estudiante : estudiantes) {
+                try {
+                    // Intentar agregar el estudiante al acudiente
+                    acudienteConId.agregarEstudiante(estudiante);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Error al agregar estudiante: " + e.getMessage(), e);
+                }
+                
                 estudiante.setEstado(Estado.Pendiente);
                 estudiante.setAcudiente(acudienteConId);
                 
@@ -308,13 +316,13 @@ public class PreinscripcionService {
                     estudianteEntity.setAcudiente(acudienteRef);
                 }
                 
-                // ⚠️ CRÍTICO: Asignar la preinscripción al estudiante
+                // Asignar la preinscripción al estudiante
                 estudianteEntity.setPreinscripcion(preinscripcionEntity);
                 
                 // Guardar estudiante
                 estudianteEntity = repoEstudiante.guardar(estudianteEntity);
                 
-                // ⚠️ CRÍTICO: Agregar estudiante a la colección de la preinscripción
+                // Agregar estudiante a la colección de la preinscripción
                 preinscripcionEntity.getEstudiantes().add(estudianteEntity);
                 
                 // Convertir de vuelta a dominio (sin preinscripción para mantener modelo limpio)
@@ -322,10 +330,7 @@ public class PreinscripcionService {
                 estudiantesGuardados.add(estudianteDomain);
             }
             
-            // 5. Actualizar preinscripción con la colección de estudiantes
-            preinscripcionEntity = entityManager.merge(preinscripcionEntity);
-            
-            // 6. Actualizar objeto de dominio
+            // 5. Actualizar objeto de dominio
             preinscripcion.setIdPreinscripcion(preinscripcionEntity.getIdPreinscripcion());
             preinscripcion.setEstudiantes(estudiantesGuardados);
             
@@ -345,17 +350,13 @@ public class PreinscripcionService {
     }
     
     /**
-     * Verifica si quedan cupos disponibles para agregar más estudiantes
-     * RF 3.2 - Verificar contador de estudiantes
+     * Métodos auxiliares que usan el modelo de dominio
      */
-    public boolean puedeAgregarMasEstudiantes(int cantidadActual) {
-        return cantidadActual < MAX_ESTUDIANTES_POR_ACUDIENTE;
+    public boolean puedeAgregarMasEstudiantes(Acudiente acudiente) {
+        return acudiente.puedeAgregarMasEstudiantes();
     }
     
-    /**
-     * Obtiene el número de estudiantes restantes que se pueden agregar
-     */
-    public int obtenerCuposRestantes(int cantidadActual) {
-        return Math.max(0, MAX_ESTUDIANTES_POR_ACUDIENTE - cantidadActual);
+    public int obtenerCuposRestantes(Acudiente acudiente) {
+        return acudiente.obtenerCuposRestantes();
     }
 }

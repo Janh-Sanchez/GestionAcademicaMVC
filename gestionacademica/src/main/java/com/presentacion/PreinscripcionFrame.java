@@ -373,51 +373,76 @@ public class PreinscripcionFrame {
             }
         }
     }
-    
+
     /**
      * Muestra las opciones después de llenar el primer estudiante
      */
     private void mostrarOpcionesPostFormulario() {
-        String[] opciones = {
-            "Volver",
-            "Agregar otro estudiante",
-            "Enviar"
-        };
+        String[] opciones;
+        JPanel panelDialogo = new JPanel(new BorderLayout(10, 10));
+        boolean maximoAlcanzado = contadorEstudiantes >= Acudiente.MAX_ESTUDIANTES;
         
-        // Deshabilitar "Agregar otro" si ya llegó al límite
-        if (contadorEstudiantes >= 4) {
-            mostrarAdvertencia(
-                "Solo puede inscribir máximo 4 estudiantes",
-                "Ha alcanzado el límite máximo de estudiantes por acudiente."
-            );
+        if (maximoAlcanzado) {
             opciones = new String[]{"Volver", "Enviar"};
+            
+            // Crear panel con icono de advertencia y mensaje
+            JLabel iconLabel = new JLabel("⚠️");
+            iconLabel.setFont(new Font("Dialog", Font.PLAIN, 36));
+            iconLabel.setForeground(COLOR_ADVERTENCIA);
+            iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            
+            JLabel mensajeLabel = new JLabel(
+                "<html><div style='text-align: center;'>" +
+                "<b>¡Ha alcanzado el límite máximo!</b><br><br>" +
+                "Solo puede inscribir máximo 4 estudiantes por acudiente.<br>" +
+                "¿Qué desea hacer?</div></html>"
+            );
+            mensajeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            
+            panelDialogo.add(iconLabel, BorderLayout.NORTH);
+            panelDialogo.add(mensajeLabel, BorderLayout.CENTER);
+        } else {
+            opciones = new String[]{"Volver", "Agregar otro estudiante", "Enviar"};
+            JLabel mensajeLabel = new JLabel("¿Qué desea hacer?");
+            mensajeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            panelDialogo.add(mensajeLabel, BorderLayout.CENTER);
         }
         
         int seleccion = JOptionPane.showOptionDialog(
             null,
-            "¿Qué desea hacer?",
+            panelDialogo,
             "Opciones de preinscripción",
             JOptionPane.DEFAULT_OPTION,
             JOptionPane.QUESTION_MESSAGE,
             null,
             opciones,
-            opciones[2] // "Enviar" como opción por defecto
+            opciones[opciones.length - 1] // Última opción como predeterminada
         );
         
-        switch (seleccion) {
-            case 0: // Volver
+        if (maximoAlcanzado) {
+            // Cuando solo hay 2 opciones: "Volver" (0) y "Enviar" (1)
+            if (seleccion == 0) {
                 mostrarAdvertenciaSalir();
-                break;
-            case 1: // Agregar otro estudiante
-                if (contadorEstudiantes < 4) {
-                    mostrarFormularioEstudianteAdicional();
-                }
-                break;
-            case 2: // Enviar
+            } else if (seleccion == 1) {
                 enviarFormularioPreinscripcion();
-                break;
-            default:
-                mostrarOpcionesPostFormulario(); // Volver a mostrar opciones
+            }
+        } else {
+            // Cuando hay 3 opciones
+            switch (seleccion) {
+                case 0: // Volver
+                    mostrarAdvertenciaSalir();
+                    break;
+                case 1: // Agregar otro estudiante
+                    if (contadorEstudiantes < Acudiente.MAX_ESTUDIANTES) {
+                        mostrarFormularioEstudianteAdicional();
+                    }
+                    break;
+                case 2: // Enviar
+                    enviarFormularioPreinscripcion();
+                    break;
+                default:
+                    mostrarOpcionesPostFormulario(); // Volver a mostrar opciones
+            }
         }
     }
     
@@ -739,18 +764,6 @@ public class PreinscripcionFrame {
             panel,
             "Error",
             JOptionPane.ERROR_MESSAGE
-        );
-    }
-    
-    /**
-     * Muestra mensaje de advertencia
-     */
-    private void mostrarAdvertencia(String titulo, String mensaje) {
-        JOptionPane.showMessageDialog(
-            null,
-            mensaje,
-            titulo,
-            JOptionPane.WARNING_MESSAGE
         );
     }
     
