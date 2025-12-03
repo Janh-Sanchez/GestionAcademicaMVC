@@ -26,5 +26,44 @@ public class UsuarioRepositorio extends RepositorioGenerico<UsuarioEntity>{
         } catch (NoResultException e) {
             return Optional.empty();
         }
-    } 
+    }
+
+    public boolean existePorCorreo(String correoElectronico) {
+        try {
+            String jpql = "SELECT 1 FROM usuario u WHERE u.correoElectronico = :correoElectronico";
+            entityManager.createQuery(jpql, Integer.class)
+                            .setParameter("correoElectronico", correoElectronico)
+                            .setMaxResults(1)
+                            .getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
+
+    public boolean existePorTelefono(String telefono) {
+        try {
+            String jpql = "SELECT 1 FROM usuario u WHERE u.telefono = :telefono";
+            entityManager.createQuery(jpql, Integer.class)
+                            .setParameter("telefono", telefono)
+                            .setMaxResults(1)
+                            .getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
+
+    public boolean existePorNuip(String nuipUsuario) {
+        try {
+            String jpql = "SELECT 1 FROM usuario u WHERE u.nuipUsuario = :nuipUsuario";
+            entityManager.createQuery(jpql, Integer.class)
+                            .setParameter("nuipUsuario", nuipUsuario)
+                            .setMaxResults(1)
+                            .getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
 }
