@@ -130,6 +130,7 @@ public class PreinscripcionFrame {
         fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Nombre", "segundoNombre", false);
         fila = agregarCampoFormulario(panel, gbc, fila++, "Primer Apellido", "primerApellido", true);
         fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Apellido", "segundoApellido", false);
+        fila = agregarCampoFormulario(panel, gbc, fila, "Nuip", "nuip", true);
         fila = agregarCampoFormulario(panel, gbc, fila++, "Edad", "edad", true);
         fila = agregarCampoFormulario(panel, gbc, fila++, "Correo electrónico", "correoElectronico", true);
         fila = agregarCampoFormulario(panel, gbc, fila++, "Teléfono de contacto", "telefono", true);
@@ -256,6 +257,7 @@ public class PreinscripcionFrame {
         
         // Validar datos del acudiente (INCLUYENDO DUPLICADOS)
         ResultadoValidacion validacion = preinscripcionService.validarDatosAcudienteConDuplicados(
+            datosAcudiente.get("nuip"),
             datosAcudiente.get("primerNombre"),
             datosAcudiente.get("segundoNombre"),
             datosAcudiente.get("primerApellido"),
@@ -686,6 +688,7 @@ public class PreinscripcionFrame {
         try {
             // Crear objeto Acudiente
             Acudiente acudiente = new Acudiente();
+            acudiente.setNuipUsuario(datosAcudiente.get("nuip"));
             acudiente.setPrimerNombre(datosAcudiente.get("primerNombre"));
             acudiente.setSegundoNombre(datosAcudiente.get("segundoNombre"));
             acudiente.setPrimerApellido(datosAcudiente.get("primerApellido"));

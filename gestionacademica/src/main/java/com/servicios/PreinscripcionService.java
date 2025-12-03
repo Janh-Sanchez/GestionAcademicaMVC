@@ -357,6 +357,7 @@ public class PreinscripcionService {
     }
 
     public ResultadoValidacion validarDatosAcudienteConDuplicados(
+            String nuip,
             String primerNombre, String segundoNombre,
             String primerApellido, String segundoApellido,
             Integer edad,
@@ -370,6 +371,12 @@ public class PreinscripcionService {
         
         if (!validacion.isValido()) {
             return validacion;
+        }
+
+        if (usuarioRepositorio.existePorNuip(nuip)){
+            return ResultadoValidacion.error("nuip", 
+                "Ya existe un usuario registrado con este NUIP"
+            );
         }
         
         // Verificar duplicados

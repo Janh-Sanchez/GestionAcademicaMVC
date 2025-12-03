@@ -10,10 +10,10 @@ public class Acudiente extends Usuario {
     private Estado estadoAprobacion = Estado.Pendiente;
     private Set<Estudiante> estudiantes;
 
-    public Acudiente(Integer idUsuario, String primerNombre, String segundoNombre, String primerApellido, 
+    public Acudiente(Integer idUsuario, String nuipUsuario, String primerNombre, String segundoNombre, String primerApellido, 
         String segundoApellido, int edad, String correoElectronico, String telefono, 
         TokenUsuario tokenAccess, Estado estadoAprobacion, Set<Estudiante> estudiantes) {
-        super(idUsuario, primerNombre, segundoNombre, primerApellido, segundoApellido, 
+        super(idUsuario, nuipUsuario, primerNombre, segundoNombre, primerApellido, segundoApellido, 
               edad, correoElectronico, telefono, tokenAccess);
         this.estadoAprobacion = estadoAprobacion;
         this.estudiantes = estudiantes != null ? estudiantes : new HashSet<>();

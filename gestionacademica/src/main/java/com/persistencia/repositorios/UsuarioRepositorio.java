@@ -53,4 +53,17 @@ public class UsuarioRepositorio extends RepositorioGenerico<UsuarioEntity>{
             return false;
         }
     }
+
+    public boolean existePorNuip(String nuipUsuario) {
+        try {
+            String jpql = "SELECT 1 FROM usuario u WHERE u.nuipUsuario = :nuipUsuario";
+            entityManager.createQuery(jpql, Integer.class)
+                            .setParameter("nuipUsuario", nuipUsuario)
+                            .setMaxResults(1)
+                            .getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
 }

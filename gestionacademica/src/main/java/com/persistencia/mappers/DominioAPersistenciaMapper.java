@@ -73,6 +73,7 @@ public class DominioAPersistenciaMapper {
         if (usuario == null || entity == null) return;
         
         entity.setIdUsuario(usuario.getIdUsuario());
+        entity.setNuipUsuario(usuario.getNuipUsuario());
         entity.setPrimerNombre(usuario.getPrimerNombre());
         entity.setSegundoNombre(usuario.getSegundoNombre());
         entity.setPrimerApellido(usuario.getPrimerApellido());
@@ -87,6 +88,7 @@ public class DominioAPersistenciaMapper {
         if (entity == null || usuario == null) return;
         
         usuario.setIdUsuario(entity.getIdUsuario());
+        usuario.setNuipUsuario(entity.getNuipUsuario());
         usuario.setPrimerNombre(entity.getPrimerNombre());
         usuario.setSegundoNombre(entity.getSegundoNombre());
         usuario.setPrimerApellido(entity.getPrimerApellido());
