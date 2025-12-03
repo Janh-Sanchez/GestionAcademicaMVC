@@ -254,8 +254,8 @@ public class PreinscripcionFrame {
             }
         }
         
-        // Validar datos del acudiente
-        ResultadoValidacion validacion = preinscripcionService.validarDatosAcudiente(
+        // Validar datos del acudiente (INCLUYENDO DUPLICADOS)
+        ResultadoValidacion validacion = preinscripcionService.validarDatosAcudienteConDuplicados(
             datosAcudiente.get("primerNombre"),
             datosAcudiente.get("segundoNombre"),
             datosAcudiente.get("primerApellido"),
@@ -293,8 +293,8 @@ public class PreinscripcionFrame {
             }
         }
         
-        // Validar primer estudiante
-        validacion = preinscripcionService.validarDatosEstudiante(
+        // Validar primer estudiante (INCLUYENDO DUPLICADOS)
+        validacion = preinscripcionService.validarDatosEstudianteConDuplicados(
             datosEstudiante.get("primerNombre"),
             datosEstudiante.get("segundoNombre"),
             datosEstudiante.get("primerApellido"),
@@ -318,7 +318,7 @@ public class PreinscripcionFrame {
         
         return true;
     }
-    
+
     /**
      * Muestra error en un campo específico del formulario
      */
@@ -385,7 +385,6 @@ public class PreinscripcionFrame {
         if (maximoAlcanzado) {
             opciones = new String[]{"Volver", "Enviar"};
             
-            // Crear panel con icono de advertencia y mensaje
             JLabel iconLabel = new JLabel("⚠️");
             iconLabel.setFont(new Font("Dialog", Font.PLAIN, 36));
             iconLabel.setForeground(COLOR_ADVERTENCIA);
@@ -394,7 +393,7 @@ public class PreinscripcionFrame {
             JLabel mensajeLabel = new JLabel(
                 "<html><div style='text-align: center;'>" +
                 "<b>¡Ha alcanzado el límite máximo!</b><br><br>" +
-                "Solo puede inscribir máximo 4 estudiantes por acudiente.<br>" +
+                "Solo puede inscribir máximo " + Acudiente.MAX_ESTUDIANTES + " estudiantes por acudiente.<br>" +
                 "¿Qué desea hacer?</div></html>"
             );
             mensajeLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -408,26 +407,54 @@ public class PreinscripcionFrame {
             panelDialogo.add(mensajeLabel, BorderLayout.CENTER);
         }
         
-        int seleccion = JOptionPane.showOptionDialog(
-            null,
+        // Crear un JOptionPane personalizado para manejar el cierre
+        JOptionPane optionPane = new JOptionPane(
             panelDialogo,
-            "Opciones de preinscripción",
-            JOptionPane.DEFAULT_OPTION,
             JOptionPane.QUESTION_MESSAGE,
+            JOptionPane.DEFAULT_OPTION,
             null,
             opciones,
-            opciones[opciones.length - 1] // Última opción como predeterminada
+            opciones[opciones.length - 1]
         );
         
+        JDialog dialog = optionPane.createDialog("Opciones de preinscripción");
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        // Agregar WindowListener para manejar el cierre con la X
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                // Cuando se cierra con la X, volver a mostrar las opciones
+                dialog.dispose();
+                mostrarOpcionesPostFormulario();
+            }
+        });
+        
+        dialog.setVisible(true);
+        
+        // Obtener la selección del usuario
+        Object selectedValue = optionPane.getValue();
+        
+        // Si el usuario cerró con la X, selectedValue será null
+        if (selectedValue == null) {
+            return; // El usuario cerró con la X, no hacer nada o podrías mostrar advertencia
+        }
+        
+        int seleccion = -1;
+        for (int i = 0; i < opciones.length; i++) {
+            if (opciones[i].equals(selectedValue)) {
+                seleccion = i;
+                break;
+            }
+        }
+        
         if (maximoAlcanzado) {
-            // Cuando solo hay 2 opciones: "Volver" (0) y "Enviar" (1)
             if (seleccion == 0) {
                 mostrarAdvertenciaSalir();
             } else if (seleccion == 1) {
                 enviarFormularioPreinscripcion();
             }
         } else {
-            // Cuando hay 3 opciones
             switch (seleccion) {
                 case 0: // Volver
                     mostrarAdvertenciaSalir();
@@ -441,7 +468,8 @@ public class PreinscripcionFrame {
                     enviarFormularioPreinscripcion();
                     break;
                 default:
-                    mostrarOpcionesPostFormulario(); // Volver a mostrar opciones
+                    // No hacer nada si se cerró con la X
+                    break;
             }
         }
     }
@@ -488,6 +516,8 @@ public class PreinscripcionFrame {
     /**
      * Muestra formulario para agregar estudiante adicional
      */
+    // Modificar el método mostrarFormularioEstudianteAdicional:
+
     private void mostrarFormularioEstudianteAdicional() {
         int numeroEstudiante = contadorEstudiantes + 1;
         
@@ -499,8 +529,8 @@ public class PreinscripcionFrame {
         JLabel lblTitulo = new JLabel(
             "<html><b>Formulario para el " + 
             (numeroEstudiante == 2 ? "segundo" : 
-             numeroEstudiante == 3 ? "tercer" : 
-             "cuarto") + " estudiante</b></html>"
+            numeroEstudiante == 3 ? "tercer" : 
+            "cuarto") + " estudiante</b></html>"
         );
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -516,12 +546,12 @@ public class PreinscripcionFrame {
         mapaEtiquetasActual.clear();
         mapaErroresActual.clear();
         
-        fila = agregarCampoFormularioAdicional(panel, gbc, fila++, "Primer nombre", prefijo + "primerNombre", true);
-        fila = agregarCampoFormularioAdicional(panel, gbc, fila++, "Segundo Nombre", prefijo + "segundoNombre", false);
-        fila = agregarCampoFormularioAdicional(panel, gbc, fila++, "Primer Apellido", prefijo + "primerApellido", true);
-        fila = agregarCampoFormularioAdicional(panel, gbc, fila++, "Segundo Apellido", prefijo + "segundoApellido", false);
-        fila = agregarCampoFormularioAdicional(panel, gbc, fila++, "Edad", prefijo + "edad", true);
-        fila = agregarCampoFormularioAdicional(panel, gbc, fila++, "NUIP", prefijo + "nuip", true);
+        fila = agregarCampoFormulario(panel, gbc, fila++, "Primer nombre", prefijo + "primerNombre", true);
+        fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Nombre", prefijo + "segundoNombre", false);
+        fila = agregarCampoFormulario(panel, gbc, fila++, "Primer Apellido", prefijo + "primerApellido", true);
+        fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Apellido", prefijo + "segundoApellido", false);
+        fila = agregarCampoFormulario(panel, gbc, fila++, "Edad", prefijo + "edad", true);
+        fila = agregarCampoFormulario(panel, gbc, fila++, "NUIP", prefijo + "nuip", true);
         
         JLabel lblGrado = new JLabel("Grado al que aspira (*)");
         gbc.gridx = 0;
@@ -536,7 +566,29 @@ public class PreinscripcionFrame {
         panel.add(cmbGrado, gbc);
         
         JDialog dialog = new JDialog((Frame) null, "Agregar estudiante", true);
-        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE); // Cambiar esto
+        
+        // Agregar WindowListener para manejar el cierre con la X
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                // Preguntar al usuario si está seguro de cancelar
+                int respuesta = JOptionPane.showConfirmDialog(
+                    dialog,
+                    "¿Está seguro que desea cancelar la adición de este estudiante?",
+                    "Confirmar cancelación",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+                );
+                if (respuesta == JOptionPane.YES_OPTION) {
+                    dialog.dispose();
+                    // Volver a mostrar las opciones
+                    mostrarOpcionesPostFormulario();
+                }
+                // Si dice NO, no hacer nada (no cerrar)
+            }
+        });
+        
         dialog.setSize(500, 500);
         dialog.setLocationRelativeTo(null);
         
@@ -546,7 +598,19 @@ public class PreinscripcionFrame {
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         
         JButton btnCancelar = new JButton("Cancelar");
-        btnCancelar.addActionListener(e -> dialog.dispose());
+        btnCancelar.addActionListener(e -> {
+            int respuesta = JOptionPane.showConfirmDialog(
+                dialog,
+                "¿Está seguro que desea cancelar la adición de este estudiante?",
+                "Confirmar cancelación",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+            );
+            if (respuesta == JOptionPane.YES_OPTION) {
+                dialog.dispose();
+                mostrarOpcionesPostFormulario();
+            }
+        });
         
         JButton btnAgregar = new JButton("Agregar");
         btnAgregar.addActionListener(e -> {
@@ -562,43 +626,6 @@ public class PreinscripcionFrame {
         
         dialog.add(panelPrincipal);
         dialog.setVisible(true);
-    }
-    
-    /**
-     * Agrega un campo de texto al formulario adicional
-     */
-    private int agregarCampoFormularioAdicional(JPanel panel, GridBagConstraints gbc, 
-                                              int fila, String label, String nombre, 
-                                              boolean obligatorio) {
-        JLabel lbl = new JLabel(label + (obligatorio ? " (*)" : ""));
-        gbc.gridx = 0;
-        gbc.gridy = fila;
-        lbl.setForeground(COLOR_CAMPO_NORMAL);
-        mapaEtiquetasActual.put(nombre, lbl);
-        panel.add(lbl, gbc);
-        
-        JTextField txt = new JTextField(20);
-        txt.setName(nombre);
-        txt.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_CAMPO_NORMAL, 1),
-            BorderFactory.createEmptyBorder(4, 4, 4, 4)
-        ));
-        gbc.gridx = 1;
-        panel.add(txt, gbc);
-        mapaCamposActual.put(nombre, txt);
-        
-        // Crear label de error
-        JLabel lblError = new JLabel("");
-        lblError.setForeground(COLOR_ERROR);
-        lblError.setFont(new Font("Arial", Font.PLAIN, 10));
-        lblError.setVisible(false);
-        gbc.gridx = 0;
-        gbc.gridy = fila + 1;
-        gbc.gridwidth = 2;
-        panel.add(lblError, gbc);
-        mapaErroresActual.put(nombre, lblError);
-        
-        return fila + 2;
     }
     
     /**
@@ -631,8 +658,8 @@ public class PreinscripcionFrame {
             }
         }
         
-        // Validar estudiante
-        ResultadoValidacion validacion = preinscripcionService.validarDatosEstudiante(
+        // Validar estudiante (INCLUYENDO DUPLICADOS)
+        ResultadoValidacion validacion = preinscripcionService.validarDatosEstudianteConDuplicados(
             datosEstudiante.get("primerNombre"),
             datosEstudiante.get("segundoNombre"),
             datosEstudiante.get("primerApellido"),

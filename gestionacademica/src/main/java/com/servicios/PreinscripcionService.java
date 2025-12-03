@@ -3,8 +3,11 @@ package com.servicios;
 import com.dominio.*;
 import com.persistencia.entidades.*;
 import com.persistencia.mappers.DominioAPersistenciaMapper;
+import com.persistencia.repositorios.EstudianteRepositorio;
 import com.persistencia.repositorios.GradoRepositorio;
 import com.persistencia.repositorios.RepositorioGenerico;
+import com.persistencia.repositorios.UsuarioRepositorio;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
@@ -23,7 +26,9 @@ public class PreinscripcionService {
     private final RepositorioGenerico<PreinscripcionEntity> repoPreinscripcion;
     private final RepositorioGenerico<AcudienteEntity> repoAcudiente;
     private final RepositorioGenerico<EstudianteEntity> repoEstudiante;
+    private final UsuarioRepositorio usuarioRepositorio;
     private final GradoRepositorio gradoRepositorio;
+    private final EstudianteRepositorio estudianteRepositorio;
     private final EntityManager entityManager;
     
     // Constantes de validación
@@ -42,6 +47,8 @@ public class PreinscripcionService {
         this.repoAcudiente = new RepositorioGenerico<>(entityManager, AcudienteEntity.class);
         this.repoEstudiante = new RepositorioGenerico<>(entityManager, EstudianteEntity.class);
         this.gradoRepositorio = new GradoRepositorio(entityManager);
+        this.usuarioRepositorio = new UsuarioRepositorio(entityManager);
+        this.estudianteRepositorio = new EstudianteRepositorio(entityManager);
     }
     
     /**
@@ -238,7 +245,7 @@ public class PreinscripcionService {
      * RF 3.1 - Proporcionar formulario de preinscripción
      * RF 3.2 - Preinscribir a más de un estudiante
      */
-   public Preinscripcion registrarPreinscripcion(
+    public Preinscripcion registrarPreinscripcion(
             Acudiente acudiente, 
             Set<Estudiante> estudiantes) throws Exception {
         
@@ -347,6 +354,63 @@ public class PreinscripcionService {
             }
             throw new Exception("Error al acceder a la base de datos, inténtelo nuevamente", e);
         }
+    }
+
+    public ResultadoValidacion validarDatosAcudienteConDuplicados(
+            String primerNombre, String segundoNombre,
+            String primerApellido, String segundoApellido,
+            Integer edad,
+            String correoElectronico, String telefono) {
+        
+        // Primero validar formato
+        ResultadoValidacion validacion = validarDatosAcudiente(
+            primerNombre, segundoNombre, primerApellido, segundoApellido,
+            edad, correoElectronico, telefono
+        );
+        
+        if (!validacion.isValido()) {
+            return validacion;
+        }
+        
+        // Verificar duplicados
+        if (usuarioRepositorio.existePorCorreo(correoElectronico)) {
+            return ResultadoValidacion.error("correoElectronico", 
+                "Ya existe un acudiente registrado con este correo electrónico");
+        }
+        
+        if (usuarioRepositorio.existePorTelefono(telefono)) {
+            return ResultadoValidacion.error("telefono", 
+                "Ya existe un acudiente registrado con este número de teléfono");
+        }
+        
+        return ResultadoValidacion.exitoso();
+    }
+    
+    /**
+     * Valida los datos del estudiante incluyendo duplicados
+     */
+    public ResultadoValidacion validarDatosEstudianteConDuplicados(
+            String primerNombre, String segundoNombre,
+            String primerApellido, String segundoApellido,
+            Integer edad, String nuip, String nombreGrado) {
+        
+        // Primero validar formato
+        ResultadoValidacion validacion = validarDatosEstudiante(
+            primerNombre, segundoNombre, primerApellido, segundoApellido,
+            edad, nuip, nombreGrado
+        );
+        
+        if (!validacion.isValido()) {
+            return validacion;
+        }
+        
+        // Verificar duplicado de NUIP
+        if (estudianteRepositorio.existePorNuip(nuip)) {
+            return ResultadoValidacion.error("nuip", 
+                "Ya existe un estudiante registrado con este NUIP");
+        }
+        
+        return ResultadoValidacion.exitoso();
     }
     
     /**
