@@ -21,9 +21,9 @@ public class RepositorioGenerico<T> {
     }
 
     public T guardar(T entidad) {
-        entityManager.persist(entidad);
+        T entidadGuardada = entityManager.merge(entidad);
         entityManager.flush(); // Asegurar que se persiste inmediatamente
-        return entidad;
+        return entidadGuardada;
     }
 
     public Optional<T> buscarPorId(Object id) {

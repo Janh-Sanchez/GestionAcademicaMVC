@@ -155,9 +155,10 @@ public class DirectivoFrame extends JFrame {
     }
 
     private void consultarAspirantes() {
-        mostrarMensajeDesarrollo("Consultar Lista de Aspirantes");
+        ListaAspirantesPanel panel = new ListaAspirantesPanel();
+        panel.setVisible(true);
     }
-
+    
     private void administrarGrupos() {
         mostrarMensajeDesarrollo("Administrar Grupos");
     }
