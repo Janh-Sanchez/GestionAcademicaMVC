@@ -7,7 +7,7 @@ import jakarta.validation.constraints.*;
 @Inheritance(strategy = InheritanceType.JOINED)
 public class UsuarioEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_usuario")
     private Integer idUsuario;
 
@@ -52,7 +52,7 @@ public class UsuarioEntity {
     @JoinColumn(name = "tokenAccess", referencedColumnName = "id_token", nullable = true)
     private TokenUsuarioEntity tokenAccess;
 
-    // ✅ SOLO getters y setters
+    // SOLO getters y setters
     public Integer getIdUsuario() { return idUsuario; }
     public void setIdUsuario(Integer idUsuario) { this.idUsuario = idUsuario; }
     public String getNuipUsuario() { return nuipUsuario; }

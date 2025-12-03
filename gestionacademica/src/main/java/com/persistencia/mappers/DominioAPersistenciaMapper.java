@@ -72,7 +72,10 @@ public class DominioAPersistenciaMapper {
     private static void mapUsuarioToEntity(Usuario usuario, UsuarioEntity entity) {
         if (usuario == null || entity == null) return;
         
-        entity.setIdUsuario(usuario.getIdUsuario());
+        if (usuario.getIdUsuario() != null) {
+            entity.setIdUsuario(usuario.getIdUsuario());
+        }
+        
         entity.setNuipUsuario(usuario.getNuipUsuario());
         entity.setPrimerNombre(usuario.getPrimerNombre());
         entity.setSegundoNombre(usuario.getSegundoNombre());
@@ -81,7 +84,11 @@ public class DominioAPersistenciaMapper {
         entity.setEdad(usuario.getEdad());
         entity.setCorreoElectronico(usuario.getCorreoElectronico());
         entity.setTelefono(usuario.getTelefono());
-        entity.setTokenAccess(toEntity(usuario.getTokenAccess()));
+        
+        // Para el token, solo mapear si ya tiene ID
+        if (usuario.getTokenAccess() != null && usuario.getTokenAccess().getIdToken() != null) {
+            entity.setTokenAccess(toEntity(usuario.getTokenAccess()));
+        }
     }
 
     private static void mapEntityToUsuario(UsuarioEntity entity, Usuario usuario) {
@@ -107,7 +114,6 @@ public class DominioAPersistenciaMapper {
         mapUsuarioToEntity(acudiente, entity);
         entity.setEstadoAprobacion(acudiente.getEstadoAprobacion());
         
-        // ⚠️ SOLO para nuevas entidades, no establecer estudiantes
         // Los estudiantes se establecerán después de persistir la preinscripción
         if (acudiente.getIdUsuario() == null) {
             // Nueva entidad, no establecer estudiantes
@@ -146,7 +152,7 @@ public class DominioAPersistenciaMapper {
         mapUsuarioToEntity(acudiente, acudienteEntity);
         acudienteEntity.setEstadoAprobacion(acudiente.getEstadoAprobacion());
         
-        // ⚠️ Para shallow, NO establecer estudiantes
+        // Para shallow, NO establecer estudiantes
         acudienteEntity.setEstudiantes(null);
         
         return acudienteEntity;
