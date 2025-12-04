@@ -10,7 +10,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
 import java.util.Optional;
-import java.util.Random;
 
 /**
  * Servicio de gestión de usuarios - Capa de Servicios
@@ -18,18 +17,16 @@ import java.util.Random;
  */
 public class GestionUsuariosService {
     private final EntityManager em;
+    private final TokenService tokenService;
     private final UsuarioRepositorio repositorioUsuario;
     private final RolRepositorio repositorioRol;
-    private final TokenUsuarioRepositorio repositorioTokenUsuario;
-    private final EmailService emailService;
 
     public GestionUsuariosService() {
         EntityManagerFactory emf = JPAUtil.getEntityManagerFactory();
         this.em = emf.createEntityManager();
         this.repositorioUsuario = new UsuarioRepositorio(em);
         this.repositorioRol = new RolRepositorio(em);
-        this.repositorioTokenUsuario = new TokenUsuarioRepositorio(em);
-        this.emailService = new EmailService();
+        this.tokenService = new TokenService(em);
     }
     
     /**
@@ -37,21 +34,19 @@ public class GestionUsuariosService {
      */
     public ResultadoOperacion crearUsuario(Usuario usuario, String nombreRol) {
         try {
-            // 1. INICIAR TRANSACCIÓN (única para todo el caso de uso)
             em.getTransaction().begin();
             
             try {
-                // 2. Validaciones de negocio (dentro de la transacción)
+                // 1. Validaciones de negocio (dentro de la transacción)
                 
-                // 2.1 Validar rol
+                // 1.1 Validar rol
                 Optional<RolEntity> rolEntityOpt = repositorioRol.buscarPorNombreRol(nombreRol.toLowerCase());
                 if (rolEntityOpt.isEmpty()) {
                     em.getTransaction().rollback();
                     return ResultadoOperacion.error("El rol '" + nombreRol + "' no existe en el sistema");
                 }
-                RolEntity rolEntity = rolEntityOpt.get();
                 
-                // 2.2 Validar duplicados
+                // 1.2 Validar duplicados
                 if (repositorioUsuario.existePorCorreo(usuario.getCorreoElectronico())) {
                     em.getTransaction().rollback();
                     return ResultadoOperacion.error("Ya existe un usuario con ese correo electrónico");
@@ -62,31 +57,22 @@ public class GestionUsuariosService {
                     return ResultadoOperacion.error("Ya existe un usuario con ese número de teléfono");
                 }
                 
-                // 3. Generar token (lógica de negocio)
-                TokenUsuario tokenUsuario = generarTokenUsuario(usuario);
-                Rol rol = DominioAPersistenciaMapper.toDomain(rolEntity);
-                tokenUsuario.setRol(rol);
-                usuario.setTokenAccess(tokenUsuario);
-                
-                // 4. Mapear a entidades
-                TokenUsuarioEntity tokenEntity = new TokenUsuarioEntity();
-                tokenEntity.setNombreUsuario(tokenUsuario.getNombreUsuario());
-                tokenEntity.setContrasena(tokenUsuario.getContrasena());
-                tokenEntity.setRol(rolEntity);
-                
-                // 5. Persistir usando repositorios (TODO dentro de la misma transacción)
-                repositorioTokenUsuario.guardar(tokenEntity);
-                
-                // 6. Crear y guardar usuario según el tipo
+                // 2. Crear entidad de usuario según el tipo
                 UsuarioEntity usuarioEntity = null;
+                TokenUsuarioEntity tokenEntity = null;
                 String tipoUsuario = usuario.getClass().getSimpleName();
-                
+
                 switch (tipoUsuario) {
                     case "Profesor":
                         Profesor profesor = (Profesor) usuario;
                         ProfesorEntity profesorEntity = DominioAPersistenciaMapper.toEntity(profesor);
-                        profesorEntity.setTokenAccess(tokenEntity);
+                        
+                        // 3. Generar y persistir token
+                        tokenEntity = tokenService.generarYPersistirToken(profesorEntity, nombreRol);
+                        
+                        // 4. Persistir usuario (ya con el token asignado)
                         repositorioUsuario.guardar(profesorEntity);
+                        
                         usuarioEntity = profesorEntity;
                         usuario.setIdUsuario(profesorEntity.getIdUsuario());
                         break;
@@ -94,23 +80,62 @@ public class GestionUsuariosService {
                     case "Directivo":
                         Directivo directivo = (Directivo) usuario;
                         DirectivoEntity directivoEntity = DominioAPersistenciaMapper.toEntity(directivo);
-                        directivoEntity.setTokenAccess(tokenEntity);
+                        
+                        // 3. Generar y persistir token
+                        tokenEntity = tokenService.generarYPersistirToken(directivoEntity, nombreRol);
+                        
+                        // 4. Persistir usuario (ya con el token asignado)
                         repositorioUsuario.guardar(directivoEntity);
+                        
                         usuarioEntity = directivoEntity;
                         usuario.setIdUsuario(directivoEntity.getIdUsuario());
                         break;
+                        
+                    case "Acudiente":
+                        Acudiente acudiente = (Acudiente) usuario;
+                        AcudienteEntity acudienteEntity = DominioAPersistenciaMapper.toEntity(acudiente);
+                        
+                        // 3. Generar y persistir token
+                        tokenEntity = tokenService.generarYPersistirToken(acudienteEntity, nombreRol);
+                        
+                        // 4. Persistir usuario (ya con el token asignado)
+                        repositorioUsuario.guardar(acudienteEntity);
+                        
+                        usuarioEntity = acudienteEntity;
+                        usuario.setIdUsuario(acudienteEntity.getIdUsuario());
+                        break;
+                        
+                    case "Administrador":
+                        Administrador administrador = (Administrador) usuario;
+                        AdministradorEntity administradorEntity = DominioAPersistenciaMapper.toEntity(administrador);
+                        
+                        // 3. Generar y persistir token
+                        tokenEntity = tokenService.generarYPersistirToken(administradorEntity, nombreRol);
+                        
+                        // 4. Persistir usuario (ya con el token asignado)
+                        repositorioUsuario.guardar(administradorEntity);
+                        
+                        usuarioEntity = administradorEntity;
+                        usuario.setIdUsuario(administradorEntity.getIdUsuario());
+                        break;
+                        
+                    default:
+                        em.getTransaction().rollback();
+                        return ResultadoOperacion.error("Tipo de usuario no soportado: " + tipoUsuario);
                 }
-                
-                // 7. CONFIRMAR TRANSACCIÓN (todo se persiste aquí)
+
+                // 5. CONFIRMAR TRANSACCIÓN
                 em.getTransaction().commit();
                 
-                // 8. Operaciones fuera de la transacción (envío de email)
-                if (usuario.getCorreoElectronico() != null && !usuario.getCorreoElectronico().isEmpty()) {
-                    emailService.enviarCredenciales(
-                        usuario.getCorreoElectronico(), 
-                        tokenUsuario, 
-                        usuario.obtenerNombreCompleto()
-                    );
+                // 6. Enviar credenciales por email (fuera de transacción)
+                if (tokenEntity != null && usuarioEntity != null) {
+                    tokenService.enviarCredencialesPorEmail(usuarioEntity, tokenEntity);
+                }
+                
+                // 7. Devolver usuario con token en dominio
+                if (tokenEntity != null) {
+                    TokenUsuario token = DominioAPersistenciaMapper.toDomain(tokenEntity);
+                    usuario.setTokenAccess(token);
                 }
                 
                 return ResultadoOperacion.exito("Usuario creado exitosamente", usuario);
@@ -120,7 +145,7 @@ public class GestionUsuariosService {
                 if (em.getTransaction().isActive()) {
                     em.getTransaction().rollback();
                 }
-                throw e; // Re-lanzar para manejo en el catch externo
+                throw e;
             }
             
         } catch (Exception e) {
@@ -128,7 +153,6 @@ public class GestionUsuariosService {
             return ResultadoOperacion.error("Error al crear usuario: " + e.getMessage());
         }
     }
-    
     /**
      * CU 2.4 - Consultar información de usuario (solo lectura)
      */
@@ -201,78 +225,6 @@ public class GestionUsuariosService {
             e.printStackTrace();
             return null;
         }
-    }
-    
-    public TokenUsuario generarTokenUsuario(Usuario usuario) {
-        // Validar campos obligatorios
-        if (usuario.getPrimerNombre() == null || usuario.getPrimerApellido() == null) {
-            throw new IllegalArgumentException("Nombre y apellido son obligatorios");
-        }
-        
-        StringBuilder nombreUsuarioBuilder = new StringBuilder();
-        
-        // Primera letra del primer nombre
-        if (!usuario.getPrimerNombre().isEmpty()) {
-            nombreUsuarioBuilder.append(usuario.getPrimerNombre().charAt(0));
-        }
-        
-        // Primera letra del segundo nombre (si existe)
-        if (usuario.getSegundoNombre() != null && !usuario.getSegundoNombre().isEmpty()) {
-            nombreUsuarioBuilder.append(usuario.getSegundoNombre().charAt(0));
-        }
-        
-        // Apellido completo
-        nombreUsuarioBuilder.append(usuario.getPrimerApellido().toLowerCase().replaceAll("\\s+", ""));
-        
-        // Primera letra del segundo apellido (si existe)
-        if (usuario.getSegundoApellido() != null && !usuario.getSegundoApellido().isEmpty()) {
-            nombreUsuarioBuilder.append(usuario.getSegundoApellido().toLowerCase().charAt(0));
-        }
-        
-        // Eliminar tildes y caracteres especiales
-        String nombreUsuario = normalizarTexto(nombreUsuarioBuilder.toString());
-        
-        TokenUsuario token = new TokenUsuario();
-        token.setNombreUsuario(nombreUsuario);
-        token.setContrasena(generarContrasenaAleatoria());
-        
-        return token;
-    }
-
-    public String normalizarTexto(String texto) {
-    if (texto == null || texto.isEmpty()) {
-        return texto;
-    }
-    
-    // Convertir a minúsculas
-    String normalizado = texto.toLowerCase();
-    
-    // Reemplazar vocales con tildes
-    normalizado = normalizado
-        .replace('á', 'a')
-        .replace('é', 'e')
-        .replace('í', 'i')
-        .replace('ó', 'o')
-        .replace('ú', 'u')
-        .replace('ü', 'u')
-        .replace('ñ', 'n');
-    
-        // Eliminar caracteres especiales, mantener solo letras y números
-        normalizado = normalizado.replaceAll("[^a-z0-9]", "");
-        
-        return normalizado;
-    }
-    
-    public String generarContrasenaAleatoria() {
-        String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$";
-        Random random = new Random();
-        StringBuilder sb = new StringBuilder(8);
-        
-        for (int i = 0; i < 8; i++) {
-            sb.append(caracteres.charAt(random.nextInt(caracteres.length())));
-        }
-        
-        return sb.toString();
     }
 }
 

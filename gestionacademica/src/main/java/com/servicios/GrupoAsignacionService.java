@@ -8,7 +8,6 @@ import com.persistencia.mappers.DominioAPersistenciaMapper;
 import com.persistencia.repositorios.GradoRepositorio;
 import com.persistencia.repositorios.GrupoRepositorio;
 import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -31,7 +30,6 @@ public class GrupoAsignacionService {
     /**
      * Asigna un estudiante a un grupo según las reglas de negocio
      */
-    @Transactional
     public ResultadoOperacion asignarEstudianteAGrupo(EstudianteEntity estudiante) {
         try {
             if (estudiante.getGradoAspira() == null) {

@@ -22,6 +22,7 @@ public class GestionAspirantesService {
     private final AcudienteRepositorio repoAcudiente;
     private final GrupoRepositorio repoGrupo;
     private final GradoRepositorio repoGrado;
+    private final TokenService tokenService;
     private final GestionUsuariosService gestionUsuariosService;
     
     public GestionAspirantesService(EntityManager entityManager) {
@@ -32,6 +33,7 @@ public class GestionAspirantesService {
         this.repoGrupo = new GrupoRepositorio(entityManager);
         this.repoGrado = new GradoRepositorio(entityManager);
         this.gestionUsuariosService = new GestionUsuariosService();
+        this.tokenService = new TokenService(entityManager);
     }
     
     /**
@@ -136,10 +138,6 @@ public class GestionAspirantesService {
      * Aprueba un estudiante específico
      * RF 3.4 - Aprobar aspirante
      */
-    /**
-     * Aprueba un estudiante específico
-     * RF 3.4 - Aprobar aspirante
-     */
     public ResultadoOperacion aprobarEstudiante(Integer idEstudiante) {
         EntityTransaction transaction = entityManager.getTransaction();
         
@@ -162,7 +160,7 @@ public class GestionAspirantesService {
             }
             
             // 2. Obtener la preinscripción del estudiante
-            PreinscripcionEntity preinscripcion = obtenerPreinscripcionPorEstudiante(estudiante);
+            PreinscripcionEntity preinscripcion = repoPreinscripcion.obtenerPreinscripcionPorEstudiante(estudiante);
             
             // 3. Verificar si el acudiente ya tenía estudiantes aprobados previamente
             boolean acudienteTieneEstudiantesAprobados = repoAcudiente.tieneEstudiantesAprobados(acudiente);
@@ -234,7 +232,7 @@ public class GestionAspirantesService {
             }
             
             // 2. Obtener la preinscripción del estudiante
-            PreinscripcionEntity preinscripcion = obtenerPreinscripcionPorEstudiante(estudiante);
+            PreinscripcionEntity preinscripcion = repoPreinscripcion.obtenerPreinscripcionPorEstudiante(estudiante);
             
             // 3. Verificar si el acudiente tiene más estudiantes con estado pendiente
             boolean tieneEstudiantesPendientes = repoAcudiente.tieneEstudiantesPendientes(acudiente, idEstudiante);
@@ -278,87 +276,27 @@ public class GestionAspirantesService {
     private void generarUsuarioParaAcudiente(AcudienteEntity acudienteEntity) {
         try {
             // Verificar si el acudiente ya tiene token
-            if (acudienteEntity.getTokenAccess() != null) {
+            if (tokenService.tieneTokenAsignado(acudienteEntity)) {
                 System.out.println("Acudiente ID " + acudienteEntity.getIdUsuario() + 
                                 " ya tiene token asignado");
                 return;
             }
             
-            // Convertir a dominio para usar el método de generación de token
-            Acudiente acudiente = DominioAPersistenciaMapper.toDomain(acudienteEntity);
+            // 1. Generar token usando TokenService
+            TokenUsuarioEntity tokenGuardado = tokenService.generarTokenParaAcudiente(acudienteEntity);
             
-            // 1. Generar token usando el servicio existente
-            TokenUsuario tokenUsuario = gestionUsuariosService.generarTokenUsuario(acudiente);
-            
-            // 2. Buscar rol de acudiente
-            RolRepositorio rolRepo = new RolRepositorio(entityManager);
-            Optional<RolEntity> rolOpt = rolRepo.buscarPorNombreRol("acudiente");
-            
-            if (rolOpt.isEmpty()) {
-                System.err.println("Error: Rol 'acudiente' no encontrado en la BD");
-                return;
-            }
-            
-            // 3. Configurar el token con el rol
-            Rol rol = DominioAPersistenciaMapper.toDomain(rolOpt.get());
-            tokenUsuario.setRol(rol);
-            
-            // 4. Mapear a entidad y guardar
-            TokenUsuarioEntity tokenEntity = new TokenUsuarioEntity();
-            tokenEntity.setNombreUsuario(tokenUsuario.getNombreUsuario());
-            tokenEntity.setContrasena(tokenUsuario.getContrasena());
-            tokenEntity.setRol(rolOpt.get());
-            
-            // 5. Guardar token
-            TokenUsuarioRepositorio tokenRepo = new TokenUsuarioRepositorio(entityManager);
-            TokenUsuarioEntity tokenGuardado = tokenRepo.guardar(tokenEntity);
-            
-            // 6. Asociar token al acudiente
-            acudienteEntity.setTokenAccess(tokenGuardado);
+            // 2. Asociar token al acudiente (ya se hace en generarTokenParaAcudiente)
             repoAcudiente.guardar(acudienteEntity);
             
-            // 7. Enviar email con credenciales (si hay EmailService disponible)
-            enviarCredencialesAcudiente(acudienteEntity, tokenUsuario);
+            // 3. Enviar email con credenciales usando TokenService
+            tokenService.enviarCredencialesPorEmail(acudienteEntity, tokenGuardado);
             
             System.out.println("Token generado para acudiente ID: " + acudienteEntity.getIdUsuario() + 
-                            ", Usuario: " + tokenUsuario.getNombreUsuario());
+                            ", Usuario: " + tokenGuardado.getNombreUsuario());
             
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Error al generar usuario para acudiente: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Envía las credenciales al acudiente
-     */
-    private void enviarCredencialesAcudiente(AcudienteEntity acudiente, TokenUsuario token) {
-        try {
-            // Usar el EmailService de GestionUsuariosService si está disponible
-            // O crear uno propio si no
-            
-            // Construir nombre completo
-            String nombreCompleto = construirNombreCompleto(
-                acudiente.getPrimerNombre(),
-                acudiente.getSegundoNombre(),
-                acudiente.getPrimerApellido(),
-                acudiente.getSegundoApellido()
-            );
-            
-            // Usar el EmailService (necesitaríamos tener acceso a él)
-            // Por ahora, solo imprimir para debug
-            System.out.println("=== CREDENCIALES GENERADAS PARA ACUDIENTE ===");
-            System.out.println("Nombre: " + nombreCompleto);
-            System.out.println("Correo: " + acudiente.getCorreoElectronico());
-            System.out.println("Usuario: " + token.getNombreUsuario());
-            System.out.println("Contraseña: " + token.getContrasena());
-            System.out.println("===========================================");
-            
-            // Si quieres enviar email real, necesitarías inyectar EmailService
-            // emailService.enviarCredenciales(acudiente.getCorreoElectronico(), token, nombreCompleto);
-            
-        } catch (Exception e) {
-            System.err.println("Error al enviar credenciales: " + e.getMessage());
         }
     }
     
@@ -591,21 +529,6 @@ public class GestionAspirantesService {
     public void cerrar() {
         if (gestionUsuariosService != null) {
             gestionUsuariosService.cerrar();
-        }
-    }
-
-    /**
-     * Obtiene la preinscripción de un estudiante
-     */
-    private PreinscripcionEntity obtenerPreinscripcionPorEstudiante(EstudianteEntity estudiante) {
-        try {
-            String jpql = "SELECT p FROM preinscripcion p JOIN p.estudiantes e WHERE e.idEstudiante = :idEstudiante";
-            return entityManager.createQuery(jpql, PreinscripcionEntity.class)
-                .setParameter("idEstudiante", estudiante.getIdEstudiante())
-                .setMaxResults(1)
-                .getSingleResult();
-        } catch (Exception e) {
-            return null;
         }
     }
 

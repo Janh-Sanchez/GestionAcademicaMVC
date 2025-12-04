@@ -1,5 +1,7 @@
 package com.persistencia.repositorios;
 
+import com.dominio.Estado;
+import com.persistencia.entidades.EstudianteEntity;
 import com.persistencia.entidades.PreinscripcionEntity;
 import jakarta.persistence.EntityManager;
 
@@ -48,12 +50,24 @@ public class PreinscripcionRepositorio extends RepositorioGenerico<Preinscripcio
     /**
      * Cuenta preinscripciones por estado
      */
-    public Long contarPorEstado(com.dominio.Estado estado) {
+    public Long contarPorEstado(Estado estado) {
         String jpql = "SELECT COUNT(p) FROM preinscripcion p " +
                      "WHERE p.estado = :estado";
         
         return entityManager.createQuery(jpql, Long.class)
             .setParameter("estado", estado)
             .getSingleResult();
+    }
+
+    public PreinscripcionEntity obtenerPreinscripcionPorEstudiante(EstudianteEntity estudiante) {
+        try {
+            String jpql = "SELECT p FROM preinscripcion p JOIN p.estudiantes e WHERE e.idEstudiante = :idEstudiante";
+            return entityManager.createQuery(jpql, PreinscripcionEntity.class)
+                .setParameter("idEstudiante", estudiante.getIdEstudiante())
+                .setMaxResults(1)
+                .getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
