@@ -47,6 +47,20 @@ public class TokenUsuario {
         return credencialesCorrectas;
     }
 
+    // Validaciones de dominio
+
+    public static ResultadoValidacionDominio validarUsuario(
+        String nombre, String nombreCampo, boolean esObligatorio){
+        if (nombre == null || nombre.trim().isEmpty()) {
+            if (esObligatorio) {
+                return ResultadoValidacionDominio.error(nombreCampo, 
+                    "Campo obligatorio");
+            }
+            return ResultadoValidacionDominio.exito();
+        }
+        return ResultadoValidacionDominio.exito();
+    }
+
     // Getters y Setters
     public Integer getIdToken() { return idToken; }
     public void setIdToken(Integer idToken) { this.idToken = idToken; }

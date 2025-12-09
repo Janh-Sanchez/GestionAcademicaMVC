@@ -12,7 +12,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
-public class PreinscripcionFrame {
+public class PreinscripcionFrame extends JFrame{
     private final PreinscripcionController controlador;
 
     // Datos temporales capturados del usuario 
@@ -480,7 +480,7 @@ public class PreinscripcionFrame {
                 case 0 -> mostrarAdvertenciaSalir();
                 case 1 -> mostrarFormularioEstudianteAdicional();
                 case 2 -> enviarPreinscripcion();
-                default -> mostrarOpcionesPostFormulario(); // Por si el usuario cierra el diálogo
+                default -> mostrarOpcionesPostFormulario();
             }
         }
     }
@@ -651,8 +651,7 @@ public class PreinscripcionFrame {
             datosEstudiante.put(nombre, txt.getText().trim());
         }
         
-        // Capturar grado seleccionado
-        datosEstudiante.put("nombreGrado", cmbGrado.getSelectedItem().toString());
+        datosEstudiante.put("gradoAspira", cmbGrado.getSelectedItem().toString());
         
         // Crear DTO para validación
         EstudianteDTO dtoEstudiante = crearDTOEstudianteDesdeMapa(datosEstudiante);
@@ -764,7 +763,7 @@ public class PreinscripcionFrame {
             datos.get("segundoApellido"),
             parseIntegerSafe(datos.get("edad")),
             datos.get("nuip"),
-            datos.get("nombreGrado")
+            datos.get("gradoAspira")
         );
     }
 

@@ -6,11 +6,9 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.*;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.LoginController;
-import com.modelo.dominio.*;
-
-import jakarta.persistence.EntityManager;
+import com.modelo.dominio.ResultadoOperacion;
+import com.modelo.dominio.Usuario;
 
 public class LoginFrame extends JFrame {
     private LoginController controller;
@@ -19,7 +17,10 @@ public class LoginFrame extends JFrame {
     private JButton btnIniciarSesion;
     private JLabel lblError;
     
-    private final Color CB=new Color(255,212,160), CBH=new Color(255,230,180), CT=new Color(58,46,46), CF=new Color(255,243,227);
+    private final Color CB = new Color(255, 212, 160);
+    private final Color CBH = new Color(255, 230, 180);
+    private final Color CT = new Color(58, 46, 46);
+    private final Color CF = new Color(255, 243, 227);
 
     public LoginFrame() {
         this.controller = new LoginController();
@@ -32,326 +33,316 @@ public class LoginFrame extends JFrame {
         setSize(900, 600);
         setLocationRelativeTo(null);
         setResizable(false);
-        add(new JPanel(new GridLayout(1, 2)) {{
-            add(crearPanelIzquierdo());
-            add(crearPanelDerecho());
-        }});
+        
+        // Panel principal dividido en dos
+        JPanel panelPrincipal = new JPanel(new GridLayout(1, 2));
+        panelPrincipal.add(crearPanelIzquierdo());
+        panelPrincipal.add(crearPanelDerecho());
+        
+        add(panelPrincipal);
     }
 
     private JPanel crearPanelIzquierdo() {
-        JPanel p = new JPanel();
-        p.setBackground(CF);
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
+        JPanel panel = new JPanel();
+        panel.setBackground(CF);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
 
-        p.add(crearLabel("¿Ya tienes una cuenta?", Font.BOLD, 24));
-        p.add(Box.createVerticalStrut(10));
-        p.add(crearLabel("¡Bienvenido de vuelta!", Font.PLAIN, 18));
-        p.add(Box.createVerticalStrut(40));
-        p.add(crearCampoConPlaceholder("Usuario", false));
-        p.add(Box.createVerticalStrut(20));
-        p.add(crearCampoConPlaceholder("Contraseña", true));
-        p.add(Box.createVerticalStrut(30));
+        // Título
+        panel.add(crearLabel("¿Ya tienes una cuenta?", Font.BOLD, 24));
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(crearLabel("¡Bienvenido de vuelta!", Font.PLAIN, 18));
+        panel.add(Box.createVerticalStrut(40));
+
+        // Campos de entrada
+        panel.add(crearCampoConPlaceholder("Usuario", false));
+        panel.add(Box.createVerticalStrut(20));
+        panel.add(crearCampoConPlaceholder("Contraseña", true));
+        panel.add(Box.createVerticalStrut(30));
         
+        // Botón de iniciar sesión
         btnIniciarSesion = crearBoton("Iniciar sesión", e -> iniciarSesion());
-        p.add(btnIniciarSesion);
-        p.add(Box.createVerticalStrut(15));
+        panel.add(btnIniciarSesion);
+        panel.add(Box.createVerticalStrut(15));
 
+        // Etiqueta de error
         lblError = new JLabel("");
         lblError.setForeground(Color.RED);
         lblError.setFont(new Font("Arial", Font.PLAIN, 12));
         lblError.setAlignmentX(Component.CENTER_ALIGNMENT);
         lblError.setVisible(false);
-        p.add(lblError);
-        p.add(Box.createVerticalStrut(30));
+        panel.add(lblError);
+        panel.add(Box.createVerticalStrut(30));
 
-        JPanel pr = new JPanel() {{
-            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-            setBackground(CF);
-            setAlignmentX(Component.CENTER_ALIGNMENT);
-        }};
+        // Panel de registro
+        JPanel panelRegistro = new JPanel() {
+            {
+                setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+                setBackground(CF);
+                setAlignmentX(Component.CENTER_ALIGNMENT);
+            }
+        };
 
-        JLabel lp = new JLabel("<html><center>¿Te interesa registrar a tus hijos<br>en nuestra institución?</center></html>", SwingConstants.CENTER);
-        lp.setFont(new Font("Arial", Font.BOLD, 16));
-        lp.setForeground(CT);
-        lp.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel lblPregunta = new JLabel(
+            "<html><center>¿Te interesa registrar a tus hijos<br>en nuestra institución?</center></html>", 
+            SwingConstants.CENTER
+        );
+        lblPregunta.setFont(new Font("Arial", Font.BOLD, 16));
+        lblPregunta.setForeground(CT);
+        lblPregunta.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        pr.add(lp);
-        pr.add(Box.createVerticalStrut(15));
-        pr.add(crearBoton("REGISTRARSE", e -> registrarse()));
-        pr.add(Box.createVerticalStrut(15));
+        panelRegistro.add(lblPregunta);
+        panelRegistro.add(Box.createVerticalStrut(15));
+        
+        // Botón de registro
+        JButton btnRegistrarse = crearBoton("REGISTRARSE", e -> abrirRegistro());
+        btnRegistrarse.setMaximumSize(new Dimension(250, 35));
+        panelRegistro.add(btnRegistrarse);
+        panelRegistro.add(Box.createVerticalStrut(15));
 
-        JLabel lf = new JLabel("<html><center>No esperes más <span style='color: red;'>¡Únete ahora!</span></center></html>", SwingConstants.CENTER);
-        lf.setFont(new Font("Arial", Font.BOLD, 16));
-        lf.setAlignmentX(Component.CENTER_ALIGNMENT);
-        pr.add(lf);
-        p.add(pr);
-        return p;
+        JLabel lblInvitacion = new JLabel(
+            "<html><center>No esperes más <span style='color: red;'>¡Únete ahora!</span></center></html>", 
+            SwingConstants.CENTER
+        );
+        lblInvitacion.setFont(new Font("Arial", Font.BOLD, 16));
+        lblInvitacion.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panelRegistro.add(lblInvitacion);
+        
+        panel.add(panelRegistro);
+        return panel;
     }
 
     private JPanel crearPanelDerecho() {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(new Color(255, 220, 180));
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(255, 220, 180));
+        
+        // Cargar imagen
         java.net.URL url = getClass().getResource("/imagenes/imagenLogin.jpg");
-        JLabel l = url != null ? new JLabel(new ImageIcon(new ImageIcon(url).getImage().getScaledInstance(450, 600, Image.SCALE_SMOOTH))) 
-                  : new JLabel("Bienvenido al Sistema Académico", SwingConstants.CENTER) {{
-                        setFont(new Font("Arial", Font.BOLD, 18));
-                        setForeground(new Color(100, 100, 100));
-                    }};
-        l.setHorizontalAlignment(SwingConstants.CENTER);
-        p.add(l, BorderLayout.CENTER);
-        return p;
+        if (url != null) {
+            ImageIcon iconOriginal = new ImageIcon(url);
+            Image imagenEscalada = iconOriginal.getImage().getScaledInstance(450, 600, Image.SCALE_SMOOTH);
+            JLabel lblImagen = new JLabel(new ImageIcon(imagenEscalada));
+            lblImagen.setHorizontalAlignment(SwingConstants.CENTER);
+            panel.add(lblImagen, BorderLayout.CENTER);
+        } else {
+            // Imagen de respaldo
+            JLabel lblTexto = new JLabel("Bienvenido al Sistema Académico", SwingConstants.CENTER);
+            lblTexto.setFont(new Font("Arial", Font.BOLD, 18));
+            lblTexto.setForeground(new Color(100, 100, 100));
+            panel.add(lblTexto, BorderLayout.CENTER);
+        }
+        
+        return panel;
     }
 
     private JPanel crearCampoConPlaceholder(String placeholder, boolean esPassword) {
-        JPanel pc = new JPanel(new BorderLayout());
-        pc.setBackground(CF);
-        pc.setMaximumSize(new Dimension(300, 40));
+        JPanel panelCampo = new JPanel(new BorderLayout());
+        panelCampo.setBackground(CF);
+        panelCampo.setMaximumSize(new Dimension(300, 40));
 
-        JComponent c = esPassword ? new JPasswordField() : new JTextField();
-        ((JTextField)c).setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0,0,2,0,CT),
-            BorderFactory.createEmptyBorder(5,10,5,10)
-        ));
-        c.setBackground(new Color(255,255,255,200));
-        c.setFont(new Font("Arial", Font.PLAIN, 14));
-        c.setForeground(CT);
-
-        JLabel lp = new JLabel(placeholder);
-        lp.setForeground(new Color(138,127,127,180));
-        lp.setFont(new Font("Arial", Font.ITALIC, 14));
-        lp.setBorder(BorderFactory.createEmptyBorder(0,12,0,0));
-        
-        JLayeredPane lyr = new JLayeredPane();
-        lyr.setPreferredSize(new Dimension(300,40));
-        lyr.setMaximumSize(new Dimension(300,40));
-        c.setBounds(0,0,300,40);
-        lp.setBounds(0,0,300,40);
-        lyr.add(c, JLayeredPane.DEFAULT_LAYER);
-        lyr.add(lp, JLayeredPane.PALETTE_LAYER);
-        pc.add(lyr, BorderLayout.CENTER);
-
-        if(esPassword) {
-            JPasswordField pwd=(JPasswordField)c;
-            pwd.addCaretListener(e->lp.setVisible(pwd.getPassword().length==0));
-            txtContrasena=pwd;
-            pwd.addActionListener(e->iniciarSesion());
-        }else{
-            JTextField txt=(JTextField)c;
-            txt.addCaretListener(e->lp.setVisible(txt.getText().isEmpty()));
-            txtUsuario=txt;
-            txt.addActionListener(e->txtContrasena.requestFocus());
+        JComponent componente;
+        if (esPassword) {
+            componente = new JPasswordField();
+            txtContrasena = (JPasswordField) componente;
+            ((JPasswordField) componente).addActionListener(e -> iniciarSesion());
+        } else {
+            componente = new JTextField();
+            txtUsuario = (JTextField) componente;
+            ((JTextField) componente).addActionListener(e -> txtContrasena.requestFocus());
         }
-        return pc;
+
+        // Estilo del campo
+        componente.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 2, 0, CT),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        componente.setBackground(new Color(255, 255, 255, 200));
+        componente.setFont(new Font("Arial", Font.PLAIN, 14));
+        componente.setForeground(CT);
+
+        // Placeholder
+        JLabel lblPlaceholder = new JLabel(placeholder);
+        lblPlaceholder.setForeground(new Color(138, 127, 127, 180));
+        lblPlaceholder.setFont(new Font("Arial", Font.ITALIC, 14));
+        lblPlaceholder.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 0));
+        
+        // Usar JLayeredPane para superponer
+        JLayeredPane layeredPane = new JLayeredPane();
+        layeredPane.setPreferredSize(new Dimension(300, 40));
+        layeredPane.setMaximumSize(new Dimension(300, 40));
+        componente.setBounds(0, 0, 300, 40);
+        lblPlaceholder.setBounds(0, 0, 300, 40);
+        layeredPane.add(componente, JLayeredPane.DEFAULT_LAYER);
+        layeredPane.add(lblPlaceholder, JLayeredPane.PALETTE_LAYER);
+        panelCampo.add(layeredPane, BorderLayout.CENTER);
+
+        // Manejar la visibilidad del placeholder
+        if (esPassword) {
+            JPasswordField campoPass = (JPasswordField) componente;
+            campoPass.addCaretListener(e -> 
+                lblPlaceholder.setVisible(campoPass.getPassword().length == 0)
+            );
+        } else {
+            JTextField campoTexto = (JTextField) componente;
+            campoTexto.addCaretListener(e -> 
+                lblPlaceholder.setVisible(campoTexto.getText().isEmpty())
+            );
+        }
+        
+        return panelCampo;
     }
 
-    private JButton crearBoton(String t, java.awt.event.ActionListener a) {
-        JButton b = new JButton(t);
-        b.setBackground(CB);
-        b.setForeground(CT);
-        b.setFont(new Font("Arial", Font.BOLD, 16));
-        b.setFocusPainted(false);
-        b.setBorderPainted(false);
-        b.setMaximumSize(new Dimension(300,40));
-        b.setAlignmentX(Component.CENTER_ALIGNMENT);
-        b.addActionListener(a);
-        b.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e){b.setBackground(CBH);}
-            public void mouseExited(MouseEvent e){b.setBackground(CB);}
+    private JButton crearBoton(String texto, java.awt.event.ActionListener accion) {
+        JButton boton = new JButton(texto);
+        boton.setBackground(CB);
+        boton.setForeground(CT);
+        boton.setFont(new Font("Arial", Font.BOLD, 16));
+        boton.setFocusPainted(false);
+        boton.setBorderPainted(false);
+        boton.setMaximumSize(new Dimension(300, 40));
+        boton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        boton.addActionListener(accion);
+        boton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                boton.setBackground(CBH);
+            }
+            public void mouseExited(MouseEvent e) {
+                boton.setBackground(CB);
+            }
         });
-        return b;
+        return boton;
     }
 
-    private JLabel crearLabel(String t, int s, int z) {
-        JLabel l = new JLabel(t);
-        l.setFont(new Font("Arial", s, z));
-        l.setForeground(CT);
-        l.setAlignmentX(Component.CENTER_ALIGNMENT);
-        return l;
+    private JLabel crearLabel(String texto, int estilo, int tamaño) {
+        JLabel label = new JLabel(texto);
+        label.setFont(new Font("Arial", estilo, tamaño));
+        label.setForeground(CT);
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        return label;
     }
 
+    /**
+     * Método principal para iniciar sesión - implementa correctamente MVC
+     */
     private void iniciarSesion() {
+        // 1. Obtener datos de la vista
         String usuario = txtUsuario.getText().trim();
         String contrasena = new String(txtContrasena.getPassword());
         
-        // Validar campos vacíos
-        if (usuario.isEmpty() || contrasena.isEmpty()) {
-            mostrarError("Por favor, llene todos los campos");
-            return;
-        }
+        // 2. Usar el controlador para validar y autenticar
+        ResultadoOperacion resultado = controller.autenticarConValidacion(usuario, contrasena);
         
-        try {
-            // Verificar si ya está bloqueado
+        // 3. Procesar resultado del controlador
+        if (resultado.isExitoso()) {
+            // Login exitoso
+            lblError.setVisible(false);
+            
+            // Obtener usuario autenticado del resultado
+            Usuario usuarioAutenticado = (Usuario) resultado.getDatos();
+            
+            // Cerrar ventana de login
+            this.dispose();
+            
+            // Navegar según el rol del usuario
+            controller.navegarSegunRol(usuarioAutenticado);
+            
+        } else {
+            // Mostrar error
+            mostrarError(resultado);
+            
+            // Verificar si la cuenta está bloqueada
             if (controller.estaBloqueado()) {
-                btnIniciarSesion.setEnabled(false);
-                btnIniciarSesion.setBackground(new Color(207, 207, 207));
-                mostrarError("Cuenta bloqueada temporalmente por seguridad");
-                return;
+                deshabilitarLogin();
             }
-            
-            // Intentar autenticar
-            Usuario usuarioAutenticado = controller.autenticar(usuario, contrasena);
-            
-            if (usuarioAutenticado != null) {
-                // Login exitoso
-                lblError.setVisible(false);
-                this.dispose();
-                navegarPorRol(usuarioAutenticado);
-            } else {
-                // Credenciales incorrectas
-                int intentosRestantes = controller.getIntentosRestantes();
-                String mensaje = "Usuario o contraseña incorrectos";
-                
-                if (intentosRestantes > 0) {
-                    mensaje += ". Intentos restantes: " + intentosRestantes;
-                }
-                
-                mostrarError(mensaje);
-                
-                // Verificar si alcanzó el límite
-                if (controller.getIntentosFallidos() >= 3) {
-                    btnIniciarSesion.setEnabled(false);
-                    btnIniciarSesion.setBackground(new Color(207, 207, 207));
-                    mostrarError("Cuenta bloqueada temporalmente por seguridad");
-                }
-            }
-            
-        } catch (IllegalStateException e) {
-            // Límite de intentos alcanzado
-            mostrarError(e.getMessage());
-            btnIniciarSesion.setEnabled(false);
-            btnIniciarSesion.setBackground(new Color(207, 207, 207));
-            
-        } catch (RuntimeException e) {
-            // Error de base de datos
-            mostrarError("Error del sistema. Por favor, intente más tarde");
-            System.err.println("Error de BD: " + e.getMessage());
-            e.printStackTrace();
         }
     }
-
-    private void navegarPorRol(Usuario usuario) {        
-        SwingUtilities.invokeLater(() -> {
-            JFrame ventanaDestino = null;
+    
+    /**
+     * Muestra el error obtenido del controlador
+     */
+    private void mostrarError(ResultadoOperacion resultado) {
+        String mensaje = resultado.getMensaje();
+        String campoError = resultado.getCampoError();
+        
+        // Si es error de validación de campo específico
+        if (campoError != null) {
+            switch (campoError) {
+                case "nombreUsuario":
+                    txtUsuario.requestFocus();
+                    break;
+                case "contrasena":
+                    txtContrasena.requestFocus();
+                    break;
+            }
             
-            if (usuario instanceof Administrador administrador){
-                ventanaDestino = new AdministradorFrame(administrador);
-                
-            } else if (usuario instanceof Directivo directivo){
-                ventanaDestino = new DirectivoFrame(directivo);
-                
-            } else if (usuario instanceof Acudiente acudiente){
-                ventanaDestino = new AcudienteFrame(acudiente);
-                
-            } else if (usuario instanceof Profesor profesor){
-                ventanaDestino = new ProfesorFrame(profesor);
-            }
-                
-            if (ventanaDestino != null) {
-                ventanaDestino.setVisible(true);
-            } else {
-                JOptionPane.showMessageDialog(null, 
-                    "Tipo de usuario no soportado: " + usuario.getClass().getSimpleName(),
-                    "Error de navegación", 
-                    JOptionPane.ERROR_MESSAGE);
-            }
-        });
-    }
-
-    private void mostrarError(String m) {
-        if(m.contains("campos") || m.contains("vacío")) {
-            lblError.setText(m);
+            // Mostrar error simple en label
+            lblError.setText(mensaje);
             lblError.setVisible(true);
         } else {
-            mostrarDialogoGrande("ERROR", m, "⊗", new Color(255,77,77), "/imagenes/icono_error.jpg");
+            // Mostrar diálogo para errores graves
+            mostrarDialogoError("Error de autenticación", mensaje);
         }
     }
-
-    private void mostrarDialogoGrande(String t, String m, String i, Color c, String rutaImg) {
-        JDialog d = new JDialog(this, t, true);
-        d.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-        d.setUndecorated(true);
-        d.setLayout(new BorderLayout(10,10));
-        d.setSize(500,400);
-        d.setLocationRelativeTo(this);
-
-        JPanel pc = new JPanel(new BorderLayout(10,10));
-        pc.setBackground(Color.WHITE);
-        pc.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
-
-        JPanel pImg = new JPanel();
-        pImg.setBackground(Color.WHITE);
-        boolean tieneImg = false;
-        if(rutaImg != null) {
-            java.net.URL url = getClass().getResource(rutaImg);
-            if(url != null) {
-                ImageIcon icon = new ImageIcon(url);
-                Image img = icon.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
-                JLabel lImg = new JLabel(new ImageIcon(img));
-                pImg.add(lImg);
-                tieneImg = true;
-            }
-        }
-
-        JPanel pCentral = new JPanel();
-        pCentral.setLayout(new BoxLayout(pCentral, BoxLayout.Y_AXIS));
-        pCentral.setBackground(Color.WHITE);
-
-        JLabel li = new JLabel(i, SwingConstants.CENTER);
-        li.setFont(new Font("Arial", Font.BOLD, 100));
-        li.setForeground(c);
-        li.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel lt = new JLabel(t);
-        lt.setFont(new Font("Arial", Font.BOLD, 24));
-        lt.setForeground(c);
-        lt.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel lm = new JLabel("<html><center>"+m+"</center></html>");
-        lm.setFont(new Font("Arial", Font.BOLD, 16));
-        lm.setForeground(CT);
-        lm.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        pCentral.add(pImg);
-        if(tieneImg) pCentral.add(Box.createVerticalStrut(15));
-        
-        if(!tieneImg) {
-            pCentral.add(li);
-            pCentral.add(Box.createVerticalStrut(10));
-        }
-        
-        pCentral.add(lt);
-        pCentral.add(Box.createVerticalStrut(20));
-        pCentral.add(lm);
-        pCentral.add(Box.createVerticalGlue());
-
-        JPanel pBoton = new JPanel();
-        pBoton.setBackground(Color.WHITE);
-        pBoton.add(crearBoton("Aceptar", e->d.dispose()));
-
-        pc.add(pCentral, BorderLayout.CENTER);
-        pc.add(pBoton, BorderLayout.SOUTH);
-
-        d.add(pc);
-        d.setVisible(true);
+    
+    /**
+     * Deshabilita el botón de login cuando se alcanza el límite de intentos
+     */
+    private void deshabilitarLogin() {
+        btnIniciarSesion.setEnabled(false);
+        btnIniciarSesion.setBackground(new Color(207, 207, 207));
+        btnIniciarSesion.setText("CUENTA BLOQUEADA");
     }
+    
+    /**
+     * Muestra un diálogo de error personalizado
+     */
+    private void mostrarDialogoError(String titulo, String mensaje) {
+        JDialog dialogo = new JDialog(this, titulo, true);
+        dialogo.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        dialogo.setUndecorated(true);
+        dialogo.setLayout(new BorderLayout(10, 10));
+        dialogo.setSize(400, 250);
+        dialogo.setLocationRelativeTo(this);
 
-    // En el método registrarse(), corregir la línea que crea el nuevo LoginFrame:
-    private void registrarse() {
+        JPanel panelContenido = new JPanel(new BorderLayout(10, 10));
+        panelContenido.setBackground(Color.WHITE);
+        panelContenido.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Icono de error
+        JLabel lblIcono = new JLabel("⚠️", SwingConstants.CENTER);
+        lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 50));
+        lblIcono.setForeground(Color.RED);
+
+        // Mensaje
+        JLabel lblMensaje = new JLabel("<html><center>" + mensaje + "</center></html>", SwingConstants.CENTER);
+        lblMensaje.setFont(new Font("Arial", Font.PLAIN, 14));
+        lblMensaje.setForeground(CT);
+
+        // Botón para aceptar
+        JButton btnAceptar = new JButton("Aceptar");
+        btnAceptar.addActionListener(e -> dialogo.dispose());
+        btnAceptar.setBackground(CB);
+        btnAceptar.setForeground(CT);
+        btnAceptar.setFocusPainted(false);
+
+        panelContenido.add(lblIcono, BorderLayout.NORTH);
+        panelContenido.add(lblMensaje, BorderLayout.CENTER);
+        panelContenido.add(btnAceptar, BorderLayout.SOUTH);
+
+        dialogo.add(panelContenido);
+        dialogo.setVisible(true);
+    }
+    
+    /**
+     * Abre el formulario de registro/preinscripción
+     */
+    private void abrirRegistro() {
         // Cerrar la ventana de login
         this.dispose();
         
-        // Crear y mostrar el formulario de preinscripción
         SwingUtilities.invokeLater(() -> {
             try {
-                // 1. Obtener EntityManager usando tu fábrica JPAUtil
-                EntityManager entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
-                
-                // 2. Crear y mostrar el frame de preinscripción
-                PreinscripcionFrame preinscripcionFrame = new PreinscripcionFrame(entityManager);
-                
-                // 3. Mostrar el formulario de preinscripción en una ventana contenedora
-                crearVentanaPreinscripcion(preinscripcionFrame, entityManager);
+                controller.abrirFormularioPreinscripcion();
                 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -361,93 +352,8 @@ public class LoginFrame extends JFrame {
                     JOptionPane.ERROR_MESSAGE);
                 
                 // Volver a mostrar el login si hay error
-                new LoginFrame().setVisible(true); // Sin parámetro ahora
-            }
-        });
-    }
-
-    private void crearVentanaPreinscripcion(PreinscripcionFrame preinscripcionFrame, EntityManager entityManager) {
-        JFrame frameContenedor = new JFrame("Formulario de Preinscripción");
-        frameContenedor.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frameContenedor.setSize(900, 600);
-        frameContenedor.setLocationRelativeTo(null);
-        
-        // Agregar WindowListener para cerrar el EntityManager cuando se cierre la ventana
-        frameContenedor.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosed(java.awt.event.WindowEvent e) {
-                if (entityManager != null && entityManager.isOpen()) {
-                    entityManager.close();
-                }
-                // Opcional: Volver al login
                 new LoginFrame().setVisible(true);
             }
-            
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent e) {
-                // Preguntar si realmente quiere salir
-                int respuesta = JOptionPane.showConfirmDialog(
-                    frameContenedor,
-                    "¿Está seguro que desea salir? Los datos no guardados se perderán.",
-                    "Confirmar salida",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE
-                );
-                
-                if (respuesta == JOptionPane.YES_OPTION) {
-                    frameContenedor.dispose();
-                }
-            }
         });
-        
-        frameContenedor.add(crearPanelPreinscripcion(preinscripcionFrame));
-        frameContenedor.setVisible(true);
-    }
-
-    private JPanel crearPanelPreinscripcion(PreinscripcionFrame preinscripcionFrame) {
-        JPanel panel = new JPanel(new BorderLayout());
-        
-        // Botón para abrir el formulario
-        JButton btnAbrirFormulario = new JButton("Comenzar Preinscripción");
-        btnAbrirFormulario.addActionListener(e -> {
-            preinscripcionFrame.mostrarFormularioPreinscripcion();
-        });
-        
-        // Panel de bienvenida
-        JPanel panelBienvenida = new JPanel(new BorderLayout());
-        panelBienvenida.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
-        
-        JLabel lblTitulo = new JLabel("<html><h1>Preinscripción para Nuevos Estudiantes</h1></html>", 
-                                    SwingConstants.CENTER);
-        JLabel lblInstrucciones = new JLabel(
-            "<html><center><p>Haz clic en el botón para comenzar el proceso de preinscripción</p>" +
-            "<p>Podrás registrar hasta 4 estudiantes por acudiente</p>" +
-            "<p><b>Requisitos:</b></p>" +
-            "<ul style='text-align: left;'>" +
-            "<li>Acudiente mayor de 18 años</li>" +
-            "<li>Estudiantes entre 3 y 18 años</li>" +
-            "<li>Documentos de identificación válidos</li>" +
-            "</ul></center></html>",
-            SwingConstants.CENTER
-        );
-        
-        panelBienvenida.add(lblTitulo, BorderLayout.NORTH);
-        panelBienvenida.add(lblInstrucciones, BorderLayout.CENTER);
-        panelBienvenida.add(btnAbrirFormulario, BorderLayout.SOUTH);
-        
-        panel.add(panelBienvenida, BorderLayout.CENTER);
-        
-        // Botón para volver al login
-        JButton btnVolver = new JButton("Volver al Login");
-        btnVolver.addActionListener(e -> {
-            ((JFrame) SwingUtilities.getWindowAncestor(panel)).dispose();
-            new LoginFrame().setVisible(true);
-        });
-        
-        JPanel panelInferior = new JPanel();
-        panelInferior.add(btnVolver);
-        panel.add(panelInferior, BorderLayout.SOUTH);
-        
-        return panel;
     }
 }

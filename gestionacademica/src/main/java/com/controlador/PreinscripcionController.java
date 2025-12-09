@@ -10,27 +10,7 @@ import jakarta.persistence.EntityTransaction;
 import java.time.LocalDate;
 import java.util.*;
 
-/**
- * CONTROLADOR - PreinscripcionController
- * 
- * Responsabilidades del Controlador en MVC:
- * ==========================================
- * 1. Recibir solicitudes de la Vista
- * 2. Coordinar operaciones entre Modelo y Repositorios
- * 3. Transformar datos entre la Vista y el Modelo
- * 4. Orquestar transacciones
- * 5. Devolver DTOs o resultados a la Vista
- * 
- * LO QUE NO DEBE HACER:
- * - NO contiene lógica de validación de negocio (eso es del MODELO)
- * - NO crea componentes visuales (eso es de la VISTA)
- * - NO tiene lógica compleja de negocio (eso es del MODELO)
- */
 public class PreinscripcionController {
-    
-    // ============================================
-    // DEPENDENCIAS
-    // ============================================
     private final RepositorioGenerico<Preinscripcion> repoPreinscripcion;
     private final RepositorioGenerico<Acudiente> repoAcudiente;
     private final RepositorioGenerico<Estudiante> repoEstudiante;
@@ -49,34 +29,10 @@ public class PreinscripcionController {
         this.estudianteRepositorio = new EstudianteRepositorio(entityManager);
     }
     
-    // ============================================
-    // MÉTODOS DEL CONTROLADOR
-    // ============================================
-    
-    /**
-     * Valida los datos del acudiente
-     * 
-     * RESPONSABILIDAD DEL CONTROLADOR:
-     * - Recibe un DTO de la vista
-     * - Crea una instancia temporal del Modelo
-     * - Delega la validación al MODELO
-     * - Verifica duplicados en la BD a través de repositorios
-     * - Devuelve un resultado a la vista
-     */
-
     // Pasa de DTO a objeto de dominio
     public ResultadoOperacion validarAcudiente(AcudienteDTO datos) {
         // 1. Crear instancia temporal del modelo para validar
-        Acudiente acudiente = new Acudiente();
-        acudiente.setNuipUsuario(datos.nuip);
-        acudiente.setPrimerNombre(datos.primerNombre);
-        acudiente.setSegundoNombre(datos.segundoNombre);
-        acudiente.setPrimerApellido(datos.primerApellido);
-        acudiente.setSegundoApellido(datos.segundoApellido);
-        acudiente.setEdad(datos.edad);
-        acudiente.setCorreoElectronico(datos.correoElectronico);
-        acudiente.setTelefono(datos.telefono);
-        
+        Acudiente acudiente = construirAcudiente(datos);
         // 2. Delegar validación al MODELO (las reglas están ahí)
         ResultadoValidacionDominio validacion = acudiente.validar();
         
@@ -110,18 +66,10 @@ public class PreinscripcionController {
     /**
      * Valida los datos del estudiante
      * 
-     * Sigue el mismo patrón: recibe DTO, usa el Modelo para validar,
-     * consulta repositorios, devuelve resultado
      */
     public ResultadoOperacion validarEstudiante(EstudianteDTO datos) {
         // 1. Crear instancia temporal del modelo
-        Estudiante estudiante = new Estudiante();
-        estudiante.setPrimerNombre(datos.primerNombre);
-        estudiante.setSegundoNombre(datos.segundoNombre);
-        estudiante.setPrimerApellido(datos.primerApellido);
-        estudiante.setSegundoApellido(datos.segundoApellido);
-        estudiante.setEdad(datos.edad);
-        estudiante.setNuip(datos.nuip);
+        Estudiante estudiante = construirEstudiante(datos);
         
         // Buscar y asignar el grado
         Optional<Grado> gradoOpt = gradoRepositorio.buscarPornombreGrado(datos.nombreGrado);
@@ -150,16 +98,6 @@ public class PreinscripcionController {
         return ResultadoOperacion.exito("Datos válidos");
     }
     
-    /**
-     * Registra una preinscripción completa
-     * 
-     * RESPONSABILIDAD DEL CONTROLADOR:
-     * - Orquestar la transacción completa
-     * - Coordinar entre diferentes repositorios
-     * - Transformar DTOs en entidades del Modelo
-     * - Manejar la persistencia
-     * - Devolver resultado a la Vista
-     */
     public ResultadoOperacion registrarPreinscripcion(
             AcudienteDTO datosAcudiente,
             List<EstudianteDTO> datosEstudiantes) {
@@ -220,7 +158,7 @@ public class PreinscripcionController {
                 estudiante.setPreinscripcion(preinscripcion);
                 estudiante.setEstado(Estado.Pendiente);
                 
-                // Agregar al acudiente (usa lógica de negocio del modelo)
+                // Agregar al acudiente
                 try {
                     acudiente.agregarEstudiante(estudiante);
                 } catch (Acudiente.DomainException e) {
@@ -289,11 +227,7 @@ public class PreinscripcionController {
     public int obtenerCuposRestantes(int cantidadActual) {
         return Math.max(0, Acudiente.MAX_ESTUDIANTES - cantidadActual);
     }
-    
-    // ============================================
-    // MÉTODOS AUXILIARES PRIVADOS
-    // ============================================
-    
+
     /**
      * Construye una entidad Acudiente desde un DTO
      * Transformación de datos entre capas
