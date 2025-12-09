@@ -1,10 +1,11 @@
 package com.aplicacion;
 
 import jakarta.persistence.EntityManager;
-import com.presentacion.LoginFrame;
-import com.servicios.AutenticacionService;
-import com.persistencia.repositorios.TokenUsuarioRepositorio;
-import com.persistencia.repositorios.UsuarioRepositorio;
+
+import com.controlador.servicios.AutenticacionService;
+import com.modelo.persistencia.repositorios.TokenUsuarioRepositorio;
+import com.modelo.persistencia.repositorios.UsuarioRepositorio;
+import com.vista.presentacion.LoginFrame;
 
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;

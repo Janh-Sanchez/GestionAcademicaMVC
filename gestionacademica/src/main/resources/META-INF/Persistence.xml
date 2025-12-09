@@ -9,26 +9,26 @@
         <!-- Proveedor JPA -->
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
-        <!-- Clases de Persistencia -->
-        <class>com.persistencia.entidades.AcudienteEntity</class>
-        <class>com.persistencia.entidades.AdministradorEntity</class>
-        <class>com.persistencia.entidades.BibliotecaLogrosEntity</class>
-        <class>com.persistencia.entidades.BoletinEntity</class>
-        <class>com.persistencia.entidades.DirectivoEntity</class>
-        <class>com.persistencia.entidades.EstudianteEntity</class>
-        <class>com.persistencia.entidades.GradoEntity</class>
-        <class>com.persistencia.entidades.GrupoEntity</class>
-        <class>com.persistencia.entidades.HojaVidaEntity</class>
-        <class>com.persistencia.entidades.LogroEntity</class>
-        <class>com.persistencia.entidades.LogroEstudianteEntity</class>
-        <class>com.persistencia.entidades.ObservacionEntity</class>
-        <class>com.persistencia.entidades.ObservadorEntity</class>
-        <class>com.persistencia.entidades.PermisoEntity</class>
-        <class>com.persistencia.entidades.PreinscripcionEntity</class>
-        <class>com.persistencia.entidades.ProfesorEntity</class>
-        <class>com.persistencia.entidades.RolEntity</class>
-        <class>com.persistencia.entidades.TokenUsuarioEntity</class>
-        <class>com.persistencia.entidades.UsuarioEntity</class>
+        <!-- Clases de Entidades -->
+        <class>com.modelo.dominio.Acudiente</class>
+        <class>com.modelo.dominio.Administrador</class>
+        <class>com.modelo.dominio.BibliotecaLogros</class>
+        <class>com.modelo.dominio.Boletin</class>
+        <class>com.modelo.dominio.Directivo</class>
+        <class>com.modelo.dominio.Estudiante</class>
+        <class>com.modelo.dominio.Grado</class>
+        <class>com.modelo.dominio.Grupo</class>
+        <class>com.modelo.dominio.HojaVida</class>
+        <class>com.modelo.dominio.Logro</class>
+        <class>com.modelo.dominio.LogroEstudiante</class>
+        <class>com.modelo.dominio.Observacion</class>
+        <class>com.modelo.dominio.Observador</class>
+        <class>com.modelo.dominio.Permiso</class>
+        <class>com.modelo.dominio.Preinscripcion</class>
+        <class>com.modelo.dominio.Profesor</class>
+        <class>com.modelo.dominio.Rol</class>
+        <class>com.modelo.dominio.TokenUsuario</class>
+        <class>com.modelo.dominio.Usuario</class>
 
         <!-- Configuración de la conexión con postgresql -->
         <properties>

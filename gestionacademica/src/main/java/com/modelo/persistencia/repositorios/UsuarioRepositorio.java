@@ -1,0 +1,69 @@
+package com.modelo.persistencia.repositorios;
+
+import java.util.Optional;
+
+import com.modelo.dominio.Usuario;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.TypedQuery;
+
+public class UsuarioRepositorio extends RepositorioGenerico<Usuario>{
+    private final EntityManager entityManager;
+
+    public UsuarioRepositorio(EntityManager entityManager){
+        super(entityManager, Usuario.class);
+        this.entityManager = entityManager;
+    }
+
+    public Optional<Usuario> buscarPorToken(Integer id_token){
+        String jpql = "SELECT u FROM usuario u WHERE u.tokenAccess.idToken = :id_token";
+        TypedQuery<Usuario> query = entityManager.createQuery(jpql, Usuario.class);
+        query.setParameter("id_token", id_token);
+        
+        try {
+            return Optional.of(query.getSingleResult());
+        } catch (NoResultException e) {
+            return Optional.empty();
+        }
+    }
+
+    public boolean existePorCorreo(String correoElectronico) {
+        try {
+            String jpql = "SELECT 1 FROM usuario u WHERE u.correoElectronico = :correoElectronico";
+            entityManager.createQuery(jpql, Integer.class)
+                            .setParameter("correoElectronico", correoElectronico)
+                            .setMaxResults(1)
+                            .getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
+
+    public boolean existePorTelefono(String telefono) {
+        try {
+            String jpql = "SELECT 1 FROM usuario u WHERE u.telefono = :telefono";
+            entityManager.createQuery(jpql, Integer.class)
+                            .setParameter("telefono", telefono)
+                            .setMaxResults(1)
+                            .getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
+
+    public boolean existePorNuip(String nuipUsuario) {
+        try {
+            String jpql = "SELECT 1 FROM usuario u WHERE u.nuipUsuario = :nuipUsuario";
+            entityManager.createQuery(jpql, Integer.class)
+                            .setParameter("nuipUsuario", nuipUsuario)
+                            .setMaxResults(1)
+                            .getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
+}
