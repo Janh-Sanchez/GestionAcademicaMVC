@@ -1,9 +1,9 @@
 package com.vista.presentacion;
 
 import com.controlador.servicios.GestionUsuariosService;
-import com.controlador.servicios.ResultadoOperacion;
 import com.modelo.dominio.Directivo;
 import com.modelo.dominio.Profesor;
+import com.modelo.dominio.ResultadoOperacion;
 import com.modelo.dominio.Usuario;
 
 import javax.swing.*;

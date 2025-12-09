@@ -1,14 +1,10 @@
 package com.aplicacion;
 
-import jakarta.persistence.EntityManager;
-
-import com.controlador.servicios.AutenticacionService;
-import com.modelo.persistencia.repositorios.TokenUsuarioRepositorio;
-import com.modelo.persistencia.repositorios.UsuarioRepositorio;
-import com.vista.presentacion.LoginFrame;
-
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+
+import com.vista.presentacion.LoginFrame;
+
 public class Main {
     public static void main(String[] args) {
         // Configurar Look and Feel
@@ -18,14 +14,10 @@ public class Main {
             e.printStackTrace();
         }
 
-        // Iniciar aplicación
+        // Iniciar aplicación - MUCHO MÁS SIMPLE
         SwingUtilities.invokeLater(() -> {
-            EntityManager entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
-            TokenUsuarioRepositorio tokenRepositorio = new TokenUsuarioRepositorio(entityManager);
-            UsuarioRepositorio usuarioRepositorio = new UsuarioRepositorio(entityManager);
-            AutenticacionService autenticacionService = new AutenticacionService(tokenRepositorio, usuarioRepositorio);
-            
-            LoginFrame loginFrame = new LoginFrame(autenticacionService);
+            // Solo creamos el LoginFrame, él crea su controlador internamente
+            LoginFrame loginFrame = new LoginFrame();
             loginFrame.setVisible(true);
         });
 

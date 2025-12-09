@@ -1,140 +1,110 @@
 package com.vista.presentacion;
 
-import com.controlador.servicios.PreinscripcionService;
-import com.controlador.servicios.PreinscripcionService.ResultadoValidacion;
-import com.modelo.dominio.*;
+import com.controlador.PreinscripcionController;
+import com.modelo.dominio.Acudiente;
+import com.modelo.dominio.ResultadoOperacion;
+import com.modelo.dtos.AcudienteDTO;
+import com.modelo.dtos.EstudianteDTO;
 
+import jakarta.persistence.EntityManager;
 import javax.swing.*;
 import java.awt.*;
 import java.util.*;
+import java.util.List;
 
-/**
- * Controlador de la interfaz gráfica para el proceso de preinscripción
- * Integra los mockups mostrados en las imágenes
- */
 public class PreinscripcionFrame {
+    private final PreinscripcionController controlador;
+
+    // Datos temporales capturados del usuario 
+    private Map<String, String> datosAcudienteCapturados;
+    private List<Map<String, String>> datosEstudiantesCapturados;
     
-    private final PreinscripcionService preinscripcionService;
-    private final Map<String, String> datosAcudiente;
-    private final java.util.List<Map<String, String>> listaEstudiantes;
-    private int contadorEstudiantes;
-    
-    // Colores para mensajes
-    private static final Color COLOR_ERROR = new Color(220, 53, 69);
-    private static final Color COLOR_EXITO = new Color(40, 167, 69);
-    private static final Color COLOR_ADVERTENCIA = new Color(255, 193, 7);
-    
-    // Colores para campos
-    private static final Color COLOR_CAMPO_NORMAL = Color.BLACK;
-    private static final Color COLOR_CAMPO_ERROR = Color.RED;
-    private static final Color BORDER_CAMPO_NORMAL = new Color(204, 204, 204);
-    private static final Color BORDER_CAMPO_ERROR = new Color(220, 53, 69);
-    
-    // Referencias a los componentes actuales
+    // Referencias a componentes UI actuales
     private JPanel panelFormularioActual;
+    private Map<String, JTextField> camposActuales;
+    private Map<String, JLabel> etiquetasActuales;
+    private Map<String, JLabel> etiquetasErrorActuales;
+
     private Map<String, JTextField> mapaCamposActual;
     private Map<String, JLabel> mapaEtiquetasActual;
     private Map<String, JLabel> mapaErroresActual;
     
-    public PreinscripcionFrame(PreinscripcionService preinscripcionService) {
-        this.preinscripcionService = preinscripcionService;
-        this.datosAcudiente = new HashMap<>();
-        this.listaEstudiantes = new ArrayList<>();
-        this.contadorEstudiantes = 0;
+    // Colores de la UI
+    private static final Color COLOR_ERROR = new Color(220, 53, 69);
+    private static final Color COLOR_CAMPO_NORMAL = Color.BLACK;
+    private static final Color COLOR_CAMPO_ERROR = Color.RED;
+    private static final Color BORDER_NORMAL = new Color(204, 204, 204);
+    private static final Color BORDER_ERROR = new Color(220, 53, 69);
+    
+
+    public PreinscripcionFrame(EntityManager entityManager) {
+        this.controlador = new PreinscripcionController(entityManager);
+        this.datosAcudienteCapturados = new HashMap<>();
+        this.datosEstudiantesCapturados = new ArrayList<>();
         this.mapaCamposActual = new HashMap<>();
         this.mapaEtiquetasActual = new HashMap<>();
         this.mapaErroresActual = new HashMap<>();
+        this.camposActuales = new HashMap<>();
+        this.etiquetasActuales = new HashMap<>();
+        this.etiquetasErrorActuales = new HashMap<>();
     }
     
     /**
      * Muestra el formulario inicial de preinscripción
      */
     public void mostrarFormularioPreinscripcion() {
-        // Solo limpiar si es la primera vez o si reiniciamos
-        if (contadorEstudiantes == 0) {
-            limpiarDatos();
+        if (datosEstudiantesCapturados.isEmpty()) {
+            limpiarDatosTemporales();
         }
         
-        panelFormularioActual = crearPanelFormularioAcudiente();
-        
-        // Usar un JDialog personalizado para mantener los datos
-        JDialog dialog = new JDialog((Frame) null, "Formulario de registro", true);
-        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-        dialog.setSize(600, 700);
-        dialog.setLocationRelativeTo(null);
-        
-        JPanel panelPrincipal = new JPanel(new BorderLayout());
-        panelPrincipal.add(panelFormularioActual, BorderLayout.CENTER);
-        
-        // Panel de botones
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        
-        JButton btnCancelar = new JButton("Cancelar");
-        btnCancelar.addActionListener(e -> {
-            int respuesta = JOptionPane.showConfirmDialog(
-                dialog,
-                "¿Está seguro que desea cancelar? Se perderán todos los datos.",
-                "Confirmar cancelación",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
-            );
-            if (respuesta == JOptionPane.YES_OPTION) {
-                limpiarDatos();
-                dialog.dispose();
-            }
-        });
-        
-        JButton btnContinuar = new JButton("Continuar");
-        btnContinuar.addActionListener(e -> {
-            if (procesarDatosAcudiente(dialog)) {
-                dialog.dispose();
-                mostrarOpcionesPostFormulario();
-            }
-        });
-        
-        panelBotones.add(btnCancelar);
-        panelBotones.add(btnContinuar);
-        panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
-        
-        dialog.add(panelPrincipal);
+        JDialog dialog = crearDialogoFormulario();
         dialog.setVisible(true);
     }
     
+    // ============================================
+    // CREACIÓN DE COMPONENTES UI
+    // ============================================
+    
     /**
-     * Crea el panel del formulario de acudiente
+     * Crea el diálogo del formulario
      */
-    private JPanel crearPanelFormularioAcudiente() {
+    private JDialog crearDialogoFormulario() {
+        JDialog dialog = new JDialog((Frame) null, "Formulario de registro", true);
+        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        dialog.setSize(600, 750);
+        dialog.setLocationRelativeTo(null);
+        
+        JPanel panelPrincipal = new JPanel(new BorderLayout());
+        panelFormularioActual = crearPanelFormulario();
+        panelPrincipal.add(panelFormularioActual, BorderLayout.CENTER);
+        panelPrincipal.add(crearPanelBotones(dialog), BorderLayout.SOUTH);
+        
+        dialog.add(panelPrincipal);
+        return dialog;
+    }
+    
+    /**
+     * Crea el panel del formulario con todos los campos
+     */
+    private JPanel crearPanelFormulario() {
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        mapaCamposActual.clear();
-        mapaEtiquetasActual.clear();
-        mapaErroresActual.clear();
+        camposActuales.clear();
+        etiquetasActuales.clear();
+        etiquetasErrorActuales.clear();
+        
+        int fila = 0;
         
         // Mensaje de bienvenida
-        JLabel lblBienvenida = new JLabel(
-            "<html><b>¡Gracias por estar interesado en nuestra institución!</b><br>" +
-            "Por favor diligencia tus datos personales correctamente.</html>"
-        );
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        panel.add(lblBienvenida, gbc);
-        
-        gbc.gridwidth = 1;
-        int fila = 1;
+        fila = agregarEncabezado(panel, gbc, fila,
+            "¡Gracias por estar interesado en nuestra institución!",
+            "Por favor diligencia tus datos personales correctamente.");
         
         // Campos del acudiente
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Primer Nombre", "primerNombre", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Nombre", "segundoNombre", false);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Primer Apellido", "primerApellido", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Apellido", "segundoApellido", false);
-        fila = agregarCampoFormulario(panel, gbc, fila, "Nuip", "nuip", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Edad", "edad", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Correo electrónico", "correoElectronico", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Teléfono de contacto", "telefono", true);
+        fila = agregarSeccionAcudiente(panel, gbc, fila);
         
         // Separador
         gbc.gridx = 0;
@@ -142,89 +112,109 @@ public class PreinscripcionFrame {
         gbc.gridwidth = 2;
         panel.add(new JSeparator(), gbc);
         
-        // Sección de estudiantes
-        JLabel lblEstudiante = new JLabel(
-            "<html><b>Por favor, diligencia los datos del estudiante</b> que deseas preinscribir.<br>" +
-            "Si vas a registrar más de un estudiante, selecciona <b>Siguiente</b> para abrir un nuevo formulario.<br>" +
-            "Cuando termines, haz clic en <b>Enviar</b></html>"
-        );
-        gbc.gridy = fila++;
-        panel.add(lblEstudiante, gbc);
-        
-        gbc.gridwidth = 1;
-        
-        // Campos del primer estudiante
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Primer nombre", "est_primerNombre", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Nombre", "est_segundoNombre", false);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Primer Apellido", "est_primerApellido", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Apellido", "est_segundoApellido", false);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Edad", "est_edad", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "NUIP", "est_nuip", true);
-        
-        // Combo de grados
-        JLabel lblGrado = new JLabel("Grado al que aspira (*)");
-        gbc.gridx = 0;
-        gbc.gridy = fila;
-        panel.add(lblGrado, gbc);
-        
-        String[] grados = {"Párvulos", "Caminadores", "Pre-Jardín"};
-        JComboBox<String> cmbGrado = new JComboBox<>(grados);
-        cmbGrado.setName("est_gradoAspira");
-        mapaCamposActual.put("est_gradoAspira", null); // Placeholder para combo
-        gbc.gridx = 1;
-        panel.add(cmbGrado, gbc);
-        
-        fila++;
-        
-        // Nota de campos obligatorios
-        gbc.gridx = 0;
-        gbc.gridy = fila;
-        gbc.gridwidth = 2;
-        JLabel lblObligatorios = new JLabel("<html><font color='red'>(*) Campos Obligatorios</font></html>");
-        panel.add(lblObligatorios, gbc);
+        // Campos del estudiante
+        fila = agregarSeccionEstudiante(panel, gbc, fila);
         
         return panel;
     }
     
     /**
-     * Agrega un campo de texto al formulario con manejo de errores visual
+     * Agrega encabezado al formulario
      */
-    private int agregarCampoFormulario(JPanel panel, GridBagConstraints gbc, 
-                                      int fila, String label, String nombre, 
-                                      boolean obligatorio) {
-        JLabel lbl = new JLabel(label + (obligatorio ? " (*)" : ""));
+    private int agregarEncabezado(JPanel panel, GridBagConstraints gbc, 
+                                   int fila, String titulo, String subtitulo) {
+        JLabel lblBienvenida = new JLabel(
+            "<html><b>" + titulo + "</b><br>" + subtitulo + "</html>"
+        );
         gbc.gridx = 0;
         gbc.gridy = fila;
-        lbl.setForeground(COLOR_CAMPO_NORMAL);
-        mapaEtiquetasActual.put(nombre, lbl);
-        panel.add(lbl, gbc);
+        gbc.gridwidth = 2;
+        panel.add(lblBienvenida, gbc);
+        gbc.gridwidth = 1;
+        return fila + 1;
+    }
+    
+    /**
+     * Agrega los campos de la sección de acudiente
+     */
+    private int agregarSeccionAcudiente(JPanel panel, GridBagConstraints gbc, int fila) {
+        fila = agregarCampo(panel, gbc, fila, "Primer Nombre", "primerNombre", true);
+        fila = agregarCampo(panel, gbc, fila, "Segundo Nombre", "segundoNombre", false);
+        fila = agregarCampo(panel, gbc, fila, "Primer Apellido", "primerApellido", true);
+        fila = agregarCampo(panel, gbc, fila, "Segundo Apellido", "segundoApellido", false);
+        fila = agregarCampo(panel, gbc, fila, "NUIP", "nuip", true);
+        fila = agregarCampo(panel, gbc, fila, "Edad", "edad", true);
+        fila = agregarCampo(panel, gbc, fila, "Correo electrónico", "correoElectronico", true);
+        fila = agregarCampo(panel, gbc, fila, "Teléfono", "telefono", true);
+        return fila;
+    }
+    
+    /**
+     * Agrega los campos de la sección de estudiante
+     */
+    private int agregarSeccionEstudiante(JPanel panel, GridBagConstraints gbc, int fila) {
+        JLabel lblEstudiante = new JLabel(
+            "<html><b>Por favor, diligencia los datos del estudiante</b><br>" +
+            "Si vas a registrar más de un estudiante, continúa al siguiente paso.</html>"
+        );
+        gbc.gridx = 0;
+        gbc.gridy = fila++;
+        gbc.gridwidth = 2;
+        panel.add(lblEstudiante, gbc);
+        gbc.gridwidth = 1;
         
+        fila = agregarCampo(panel, gbc, fila, "Primer nombre", "est_primerNombre", true);
+        fila = agregarCampo(panel, gbc, fila, "Segundo Nombre", "est_segundoNombre", false);
+        fila = agregarCampo(panel, gbc, fila, "Primer Apellido", "est_primerApellido", true);
+        fila = agregarCampo(panel, gbc, fila, "Segundo Apellido", "est_segundoApellido", false);
+        fila = agregarCampo(panel, gbc, fila, "Edad", "est_edad", true);
+        fila = agregarCampo(panel, gbc, fila, "NUIP", "est_nuip", true);
+        
+        // ComboBox de grados
+        fila = agregarComboGrados(panel, gbc, fila);
+        
+        // Nota de campos obligatorios
+        JLabel lblObligatorios = new JLabel(
+            "<html><font color='red'>(*) Campos Obligatorios</font></html>"
+        );
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        gbc.gridwidth = 2;
+        panel.add(lblObligatorios, gbc);
+        
+        return fila + 1;
+    }
+    
+    /**
+     * Agrega un campo de texto al formulario
+     */
+    private int agregarCampo(JPanel panel, GridBagConstraints gbc, 
+                            int fila, String etiqueta, String nombre, 
+                            boolean obligatorio) {
+        // Etiqueta
+        JLabel lbl = new JLabel(etiqueta + (obligatorio ? " (*)" : ""));
+        lbl.setForeground(COLOR_CAMPO_NORMAL);
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        panel.add(lbl, gbc);
+        etiquetasActuales.put(nombre, lbl);
+        
+        // Campo de texto
         JTextField txt = new JTextField(20);
         txt.setName(nombre);
         txt.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_CAMPO_NORMAL, 1),
+            BorderFactory.createLineBorder(BORDER_NORMAL, 1),
             BorderFactory.createEmptyBorder(4, 4, 4, 4)
         ));
         
-        // Restaurar datos si ya existían
-        if (nombre.startsWith("est_") && contadorEstudiantes == 1 && listaEstudiantes.size() == 1) {
-            Map<String, String> datosEstudiante = listaEstudiantes.get(0);
-            String campo = nombre.substring(4); // quitar "est_"
-            if (datosEstudiante.containsKey(campo)) {
-                txt.setText(datosEstudiante.get(campo));
-            }
-        } else if (!nombre.startsWith("est_") && !datosAcudiente.isEmpty()) {
-            String campo = nombre;
-            if (datosAcudiente.containsKey(campo)) {
-                txt.setText(datosAcudiente.get(campo));
-            }
-        }
+        // Restaurar datos si existen
+        restaurarDatosCampo(txt, nombre);
         
         gbc.gridx = 1;
         panel.add(txt, gbc);
-        mapaCamposActual.put(nombre, txt);
+        camposActuales.put(nombre, txt);
         
-        // Crear label de error
+        // Etiqueta de error
         JLabel lblError = new JLabel("");
         lblError.setForeground(COLOR_ERROR);
         lblError.setFont(new Font("Arial", Font.PLAIN, 10));
@@ -233,137 +223,495 @@ public class PreinscripcionFrame {
         gbc.gridy = fila + 1;
         gbc.gridwidth = 2;
         panel.add(lblError, gbc);
-        mapaErroresActual.put(nombre, lblError);
+        etiquetasErrorActuales.put(nombre, lblError);
+        gbc.gridwidth = 1;
         
         return fila + 2;
     }
     
     /**
-     * Procesa los datos del acudiente
-     * Retorna true si los datos son válidos
+     * Agrega el combo de grados
      */
-    private boolean procesarDatosAcudiente(JDialog dialog) {
-        // Limpiar errores anteriores
-        limpiarErrores();
+    private int agregarComboGrados(JPanel panel, GridBagConstraints gbc, int fila) {
+        JLabel lblGrado = new JLabel("Grado al que aspira (*)");
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        panel.add(lblGrado, gbc);
+        etiquetasActuales.put("est_gradoAspira", lblGrado);
         
-        // Extraer datos del acudiente
-        for (Map.Entry<String, JTextField> entry : mapaCamposActual.entrySet()) {
-            String nombre = entry.getKey();
-            JTextField txt = entry.getValue();
-            
-            if (txt != null && !nombre.startsWith("est_")) {
-                datosAcudiente.put(nombre, txt.getText().trim());
-            }
+        // Solicitar grados al controlador
+        ResultadoOperacion resultado = controlador.obtenerGradosDisponibles();
+        String[] grados;
+        
+        if (resultado.isExitoso() && resultado.getDatos() != null) {
+            @SuppressWarnings("unchecked")
+            List<String> listaGrados = (List<String>) resultado.getDatos();
+            grados = listaGrados.toArray(new String[0]);
+        } else {
+            // Fallback si no se pueden obtener los grados
+            grados = new String[]{"Párvulos", "Caminadores", "Pre-Jardín"};
         }
         
-        // Validar datos del acudiente (INCLUYENDO DUPLICADOS)
-        ResultadoValidacion validacion = preinscripcionService.validarDatosAcudienteConDuplicados(
-            datosAcudiente.get("nuip"),
-            datosAcudiente.get("primerNombre"),
-            datosAcudiente.get("segundoNombre"),
-            datosAcudiente.get("primerApellido"),
-            datosAcudiente.get("segundoApellido"),
-            parseIntSafe(datosAcudiente.get("edad")),
-            datosAcudiente.get("correoElectronico"),
-            datosAcudiente.get("telefono")
+        JComboBox<String> cmbGrado = new JComboBox<>(grados);
+        cmbGrado.setName("est_gradoAspira");
+        gbc.gridx = 1;
+        panel.add(cmbGrado, gbc);
+        
+        // Etiqueta de error para el combo
+        JLabel lblError = new JLabel("");
+        lblError.setForeground(COLOR_ERROR);
+        lblError.setFont(new Font("Arial", Font.PLAIN, 10));
+        lblError.setVisible(false);
+        gbc.gridx = 0;
+        gbc.gridy = fila + 1;
+        gbc.gridwidth = 2;
+        panel.add(lblError, gbc);
+        etiquetasErrorActuales.put("est_gradoAspira", lblError);
+        
+        return fila + 2;
+    }
+    
+    /**
+     * Crea el panel de botones
+     */
+    private JPanel crearPanelBotones(JDialog dialog) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        
+        JButton btnCancelar = new JButton("Cancelar");
+        btnCancelar.addActionListener(e -> manejarCancelacion(dialog));
+        
+        JButton btnContinuar = new JButton("Continuar");
+        btnContinuar.addActionListener(e -> manejarContinuar(dialog));
+        
+        panel.add(btnCancelar);
+        panel.add(btnContinuar);
+        
+        return panel;
+    }
+    
+    // ============================================
+    // MANEJO DE EVENTOS DEL USUARIO
+    // ============================================
+    
+    /**
+     * Maneja el evento de cancelación
+     */
+    private void manejarCancelacion(JDialog dialog) {
+        int respuesta = JOptionPane.showConfirmDialog(
+            dialog,
+            "¿Está seguro que desea cancelar? Se perderán todos los datos.",
+            "Confirmar cancelación",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
         );
         
-        if (!validacion.isValido()) {
-            // Mostrar error en campo específico
-            mostrarErrorEnCampo(validacion.getCampo(), validacion.getMensaje());
-            return false;
+        if (respuesta == JOptionPane.YES_OPTION) {
+            limpiarDatosTemporales();
+            dialog.dispose();
+        }
+    }
+    
+    /**
+     * Maneja el evento de continuar
+     */
+    private void manejarContinuar(JDialog dialog) {
+        limpiarErroresVisuales();
+        
+        // 1. CAPTURAR datos del formulario (responsabilidad de la VISTA)
+        Map<String, String> datosAcudiente = capturarDatosAcudiente();
+        Map<String, String> datosEstudiante = capturarDatosEstudiante();
+        
+        // 2. Crear DTOs para enviar al CONTROLADOR
+        AcudienteDTO dtoAcudiente = crearDTOAcudiente(datosAcudiente);
+        EstudianteDTO dtoEstudiante = crearDTOEstudiante(datosEstudiante);
+        
+        // 3. ENVIAR al CONTROLADOR para validar
+        ResultadoOperacion resultadoAcudiente = controlador.validarAcudiente(dtoAcudiente);
+        
+        if (!resultadoAcudiente.isExitoso()) {
+            mostrarErrorEnCampo(resultadoAcudiente.getCampoError(), 
+                               resultadoAcudiente.getMensaje());
+            return;
         }
         
-        // Extraer datos del estudiante
-        Map<String, String> datosEstudiante = new HashMap<>();
-        for (Map.Entry<String, JTextField> entry : mapaCamposActual.entrySet()) {
+        ResultadoOperacion resultadoEstudiante = controlador.validarEstudiante(dtoEstudiante);
+        
+        if (!resultadoEstudiante.isExitoso()) {
+            mostrarErrorEnCampo("est_" + resultadoEstudiante.getCampoError(), 
+                               resultadoEstudiante.getMensaje());
+            return;
+        }
+        
+        // 4. Si todo es válido, guardar temporalmente y continuar
+        datosAcudienteCapturados = datosAcudiente;
+        
+        if (datosEstudiantesCapturados.isEmpty()) {
+            datosEstudiantesCapturados.clear();
+        }
+        datosEstudiantesCapturados.add(datosEstudiante);
+        
+        dialog.dispose();
+        mostrarOpcionesPostFormulario();
+    }
+    
+    /**
+     * Captura los datos del acudiente del formulario
+     */
+    private Map<String, String> capturarDatosAcudiente() {
+        Map<String, String> datos = new HashMap<>();
+        
+        for (Map.Entry<String, JTextField> entry : camposActuales.entrySet()) {
             String nombre = entry.getKey();
-            JTextField txt = entry.getValue();
+            JTextField campo = entry.getValue();
             
-            if (txt != null && nombre.startsWith("est_")) {
-                String campo = nombre.substring(4); // quitar "est_"
-                datosEstudiante.put(campo, txt.getText().trim());
+            if (campo != null && !nombre.startsWith("est_")) {
+                datos.put(nombre, campo.getText().trim());
             }
         }
         
-        // Extraer el combo de grado
+        return datos;
+    }
+    
+    /**
+     * Captura los datos del estudiante del formulario
+     */
+    private Map<String, String> capturarDatosEstudiante() {
+        Map<String, String> datos = new HashMap<>();
+        
+        // Capturar campos de texto
+        for (Map.Entry<String, JTextField> entry : camposActuales.entrySet()) {
+            String nombre = entry.getKey();
+            JTextField campo = entry.getValue();
+            
+            if (campo != null && nombre.startsWith("est_")) {
+                String nombreLimpio = nombre.substring(4); // quitar "est_"
+                datos.put(nombreLimpio, campo.getText().trim());
+            }
+        }
+        
+        // Capturar combo de grado
         for (Component comp : panelFormularioActual.getComponents()) {
-            if (comp instanceof JComboBox && comp.getName() != null && comp.getName().equals("est_gradoAspira")) {
+            if (comp instanceof JComboBox && comp.getName() != null && 
+                comp.getName().equals("est_gradoAspira")) {
                 JComboBox<?> cmb = (JComboBox<?>) comp;
                 Object selected = cmb.getSelectedItem();
-                datosEstudiante.put("gradoAspira", selected != null ? selected.toString() : "");
+                datos.put("gradoAspira", selected != null ? selected.toString() : "");
                 break;
             }
         }
         
-        // Validar primer estudiante (INCLUYENDO DUPLICADOS)
-        validacion = preinscripcionService.validarDatosEstudianteConDuplicados(
-            datosEstudiante.get("primerNombre"),
-            datosEstudiante.get("segundoNombre"),
-            datosEstudiante.get("primerApellido"),
-            datosEstudiante.get("segundoApellido"),
-            parseIntSafe(datosEstudiante.get("edad")),
-            datosEstudiante.get("nuip"),
-            datosEstudiante.get("gradoAspira")
+        return datos;
+    }
+    
+    /**
+     * Crea un DTO de acudiente desde el mapa de datos
+     */
+    private AcudienteDTO crearDTOAcudiente(Map<String, String> datos) {
+        return new AcudienteDTO(
+            datos.get("nuip"),
+            datos.get("primerNombre"),
+            datos.get("segundoNombre"),
+            datos.get("primerApellido"),
+            datos.get("segundoApellido"),
+            parseIntegerSafe(datos.get("edad")),
+            datos.get("correoElectronico"),
+            datos.get("telefono")
+        );
+    }
+    
+    /**
+     * Crea un DTO de estudiante desde el mapa de datos
+     */
+    private EstudianteDTO crearDTOEstudiante(Map<String, String> datos) {
+        return new EstudianteDTO(
+            datos.get("primerNombre"),
+            datos.get("segundoNombre"),
+            datos.get("primerApellido"),
+            datos.get("segundoApellido"),
+            parseIntegerSafe(datos.get("edad")),
+            datos.get("nuip"),
+            datos.get("gradoAspira")
+        );
+    }
+    
+    // ============================================
+    // OPCIONES POST-FORMULARIO
+    // ============================================
+    private void mostrarOpcionesPostFormulario() {
+        int cantidadEstudiantes = datosEstudiantesCapturados.size();
+        boolean maximoAlcanzado = cantidadEstudiantes >= Acudiente.MAX_ESTUDIANTES;
+        
+        String mensaje;
+        String[] opciones;
+        
+        if (maximoAlcanzado) {
+            mensaje = "<html><center><h3>¡Ha alcanzado el límite máximo!</h3>" +
+                    "Estudiantes registrados: <b>" + cantidadEstudiantes + "</b><br>" +
+                    "Límite: " + Acudiente.MAX_ESTUDIANTES + " estudiantes<br><br>" +
+                    "¿Qué desea hacer?</center></html>";
+            opciones = new String[]{"Volver", "Enviar"};
+        } else {
+            int cuposRestantes = controlador.obtenerCuposRestantes(cantidadEstudiantes);
+            mensaje = "<html><center><h3>Estudiante registrado exitosamente</h3>" +
+                    "Estudiantes registrados: <b>" + cantidadEstudiantes + "</b><br>" +
+                    "Cupos restantes: <b>" + cuposRestantes + "</b><br><br>" +
+                    "¿Qué desea hacer?</center></html>";
+            opciones = new String[]{"Volver", "Agregar otro estudiante", "Enviar"};
+        }
+        
+        int seleccion = JOptionPane.showOptionDialog(
+            null,
+            mensaje,
+            "Opciones de preinscripción",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            opciones,
+            opciones[opciones.length - 1]
         );
         
-        if (!validacion.isValido()) {
-            mostrarErrorEnCampo("est_" + validacion.getCampo(), validacion.getMensaje());
+        if (maximoAlcanzado) {
+            switch (seleccion) {
+                case 0 -> mostrarAdvertenciaSalir();
+                case 1 -> enviarPreinscripcion();
+            }
+        } else {
+            switch (seleccion) {
+                case 0 -> mostrarAdvertenciaSalir();
+                case 1 -> mostrarFormularioEstudianteAdicional();
+                case 2 -> enviarPreinscripcion();
+                default -> mostrarOpcionesPostFormulario(); // Por si el usuario cierra el diálogo
+            }
+        }
+    }
+    
+    /**
+     * Muestra formulario para agregar estudiante adicional
+     */
+    private void mostrarFormularioEstudianteAdicional() {
+        int numeroEstudiante = datosEstudiantesCapturados.size() + 1;
+        
+        // Verificar límite
+        if (numeroEstudiante > Acudiente.MAX_ESTUDIANTES) {
+            JOptionPane.showMessageDialog(null,
+                "Ha alcanzado el límite máximo de " + Acudiente.MAX_ESTUDIANTES + " estudiantes",
+                "Límite alcanzado",
+                JOptionPane.WARNING_MESSAGE);
+            mostrarOpcionesPostFormulario();
+            return;
+        }
+        
+        JDialog dialog = new JDialog((Frame) null, 
+            "Agregar Estudiante #" + numeroEstudiante, true);
+        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        dialog.setSize(500, 500);
+        dialog.setLocationRelativeTo(null);
+        
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        // Título
+        JLabel lblTitulo = new JLabel(
+            "<html><h3>Estudiante " + numeroEstudiante + " de " + Acudiente.MAX_ESTUDIANTES + "</h3>" +
+            "Complete los datos del estudiante adicional</html>"
+        );
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        panel.add(lblTitulo, gbc);
+        gbc.gridwidth = 1;
+        
+        // Campos del formulario
+        int fila = 1;
+        fila = agregarCampoFormulario(panel, gbc, fila, "Primer nombre (*)", "primerNombre");
+        fila = agregarCampoFormulario(panel, gbc, fila, "Segundo Nombre", "segundoNombre");
+        fila = agregarCampoFormulario(panel, gbc, fila, "Primer Apellido (*)", "primerApellido");
+        fila = agregarCampoFormulario(panel, gbc, fila, "Segundo Apellido", "segundoApellido");
+        fila = agregarCampoFormulario(panel, gbc, fila, "Edad (*)", "edad");
+        fila = agregarCampoFormulario(panel, gbc, fila, "NUIP (*)", "nuip");
+        
+        // Combo de grados
+        JLabel lblGrado = new JLabel("Grado al que aspira (*)");
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        panel.add(lblGrado, gbc);
+        
+        // Obtener grados del controlador
+        ResultadoOperacion resultadoGrados = controlador.obtenerGradosDisponibles();
+        String[] grados;
+        
+        if (resultadoGrados.isExitoso() && resultadoGrados.getDatos() != null) {
+            @SuppressWarnings("unchecked")
+            List<String> listaGrados = (List<String>) resultadoGrados.getDatos();
+            grados = listaGrados.toArray(new String[0]);
+        } else {
+            grados = new String[]{"Párvulos", "Caminadores", "Pre-Jardín"};
+        }
+        
+        JComboBox<String> cmbGrado = new JComboBox<>(grados);
+        cmbGrado.setName("gradoAspira");
+        gbc.gridx = 1;
+        gbc.gridy = fila;
+        panel.add(cmbGrado, gbc);
+        
+        // Botones
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        
+        JButton btnCancelar = new JButton("Cancelar");
+        btnCancelar.addActionListener(e -> {
+            if (confirmarCancelacion(dialog)) {
+                dialog.dispose();
+            }
+        });
+        
+        JButton btnAgregar = new JButton("Agregar Estudiante");
+        btnAgregar.addActionListener(e -> {
+            if (procesarEstudianteAdicional(dialog, cmbGrado)) {
+                dialog.dispose();
+                mostrarOpcionesPostFormulario();
+            }
+        });
+        
+        panelBotones.add(btnCancelar);
+        panelBotones.add(btnAgregar);
+        
+        // Configurar diálogo
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                confirmarCancelacion(dialog);
+            }
+        });
+        
+        dialog.add(panel, BorderLayout.CENTER);
+        dialog.add(panelBotones, BorderLayout.SOUTH);
+        dialog.setVisible(true);
+    }
+
+    /**
+     * Agrega un campo al formulario de estudiante adicional
+     */
+    private int agregarCampoFormulario(JPanel panel, GridBagConstraints gbc, 
+                                    int fila, String etiqueta, String nombre) {
+        boolean esObligatorio = etiqueta.contains("(*)");
+        
+        // Etiqueta
+        JLabel lbl = new JLabel(etiqueta);
+        lbl.setForeground(esObligatorio ? Color.RED : Color.BLACK);
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        gbc.anchor = GridBagConstraints.WEST;
+        panel.add(lbl, gbc);
+        
+        // Campo de texto
+        JTextField txt = new JTextField(20);
+        txt.setName(nombre);
+        txt.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_NORMAL, 1),
+            BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        ));
+        gbc.gridx = 1;
+        gbc.gridy = fila;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(txt, gbc);
+        
+        // Etiqueta de error
+        JLabel lblError = new JLabel("");
+        lblError.setForeground(COLOR_ERROR);
+        lblError.setFont(new Font("Arial", Font.PLAIN, 10));
+        lblError.setVisible(false);
+        gbc.gridx = 0;
+        gbc.gridy = fila + 1;
+        gbc.gridwidth = 2;
+        panel.add(lblError, gbc);
+        gbc.gridwidth = 1;
+        
+        // Guardar referencias
+        mapaCamposActual.put(nombre, txt);
+        mapaEtiquetasActual.put(nombre, lbl);
+        mapaErroresActual.put(nombre, lblError);
+        
+        return fila + 2;
+    }
+
+    /**
+     * Procesa el estudiante adicional
+     */
+    private boolean procesarEstudianteAdicional(JDialog dialog, JComboBox<String> cmbGrado) {
+        limpiarErroresAdicionales();
+        
+        // Capturar datos del formulario
+        Map<String, String> datosEstudiante = new HashMap<>();
+        
+        for (Map.Entry<String, JTextField> entry : mapaCamposActual.entrySet()) {
+            String nombre = entry.getKey();
+            JTextField txt = entry.getValue();
+            datosEstudiante.put(nombre, txt.getText().trim());
+        }
+        
+        // Capturar grado seleccionado
+        datosEstudiante.put("nombreGrado", cmbGrado.getSelectedItem().toString());
+        
+        // Crear DTO para validación
+        EstudianteDTO dtoEstudiante = crearDTOEstudianteDesdeMapa(datosEstudiante);
+        
+        // Validar con el controlador
+        ResultadoOperacion resultado = controlador.validarEstudiante(dtoEstudiante);
+        
+        if (!resultado.isExitoso()) {
+            mostrarErrorEnCampoAdicional(resultado.getCampoError(), resultado.getMensaje());
             return false;
         }
         
-        // Si estamos agregando estudiante adicional, no reemplazar el primero
-        if (contadorEstudiantes == 0) {
-            listaEstudiantes.clear();
-        }
-        listaEstudiantes.add(datosEstudiante);
-        contadorEstudiantes = listaEstudiantes.size();
+        // Agregar a la lista de estudiantes
+        datosEstudiantesCapturados.add(datosEstudiante);
+        
+        JOptionPane.showMessageDialog(dialog,
+            "Estudiante agregado exitosamente.\n" +
+            "Estudiantes registrados: " + datosEstudiantesCapturados.size() + 
+            " de " + Acudiente.MAX_ESTUDIANTES,
+            "Éxito",
+            JOptionPane.INFORMATION_MESSAGE);
         
         return true;
     }
 
     /**
-     * Muestra error en un campo específico del formulario
+     * Confirma la cancelación
      */
-    private void mostrarErrorEnCampo(String campoNombre, String mensaje) {
-        // Mostrar etiqueta en rojo
-        JLabel etiqueta = mapaEtiquetasActual.get(campoNombre);
-        if (etiqueta != null) {
-            etiqueta.setForeground(COLOR_CAMPO_ERROR);
-        }
+    private boolean confirmarCancelacion(JDialog dialog) {
+        int respuesta = JOptionPane.showConfirmDialog(
+            dialog,
+            "¿Está seguro que desea cancelar la adición de este estudiante?",
+            "Confirmar cancelación",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
         
-        // Mostrar borde rojo en campo
-        JTextField campo = mapaCamposActual.get(campoNombre);
-        if (campo != null) {
-            campo.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_CAMPO_ERROR, 2),
-                BorderFactory.createEmptyBorder(4, 4, 4, 4)
-            ));
-            campo.requestFocusInWindow();
+        if (respuesta == JOptionPane.YES_OPTION) {
+            dialog.dispose();
+            mostrarOpcionesPostFormulario();
+            return true;
         }
-        
-        // Mostrar mensaje de error
-        JLabel errorLabel = mapaErroresActual.get(campoNombre);
-        if (errorLabel != null) {
-            errorLabel.setText(mensaje);
-            errorLabel.setVisible(true);
-        }
+        return false;
     }
-    
+
     /**
-     * Limpia todos los errores visuales
+     * Limpia errores del formulario adicional
      */
-    private void limpiarErrores() {
+    private void limpiarErroresAdicionales() {
         for (JLabel etiqueta : mapaEtiquetasActual.values()) {
             if (etiqueta != null) {
-                etiqueta.setForeground(COLOR_CAMPO_NORMAL);
+                etiqueta.setForeground(Color.BLACK);
             }
         }
         
         for (JTextField campo : mapaCamposActual.values()) {
             if (campo != null) {
                 campo.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(BORDER_CAMPO_NORMAL, 1),
+                    BorderFactory.createLineBorder(BORDER_NORMAL, 1),
                     BorderFactory.createEmptyBorder(4, 4, 4, 4)
                 ));
             }
@@ -378,129 +726,58 @@ public class PreinscripcionFrame {
     }
 
     /**
-     * Muestra las opciones después de llenar el primer estudiante
+     * Muestra error en campo adicional
      */
-    private void mostrarOpcionesPostFormulario() {
-        String[] opciones;
-        JPanel panelDialogo = new JPanel(new BorderLayout(10, 10));
-        boolean maximoAlcanzado = contadorEstudiantes >= Acudiente.MAX_ESTUDIANTES;
-        
-        if (maximoAlcanzado) {
-            opciones = new String[]{"Volver", "Enviar"};
-            
-            JLabel iconLabel = new JLabel("⚠️");
-            iconLabel.setFont(new Font("Dialog", Font.PLAIN, 36));
-            iconLabel.setForeground(COLOR_ADVERTENCIA);
-            iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            
-            JLabel mensajeLabel = new JLabel(
-                "<html><div style='text-align: center;'>" +
-                "<b>¡Ha alcanzado el límite máximo!</b><br><br>" +
-                "Solo puede inscribir máximo " + Acudiente.MAX_ESTUDIANTES + " estudiantes por acudiente.<br>" +
-                "¿Qué desea hacer?</div></html>"
-            );
-            mensajeLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            
-            panelDialogo.add(iconLabel, BorderLayout.NORTH);
-            panelDialogo.add(mensajeLabel, BorderLayout.CENTER);
-        } else {
-            opciones = new String[]{"Volver", "Agregar otro estudiante", "Enviar"};
-            JLabel mensajeLabel = new JLabel("¿Qué desea hacer?");
-            mensajeLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            panelDialogo.add(mensajeLabel, BorderLayout.CENTER);
+    private void mostrarErrorEnCampoAdicional(String nombreCampo, String mensaje) {
+        // Cambiar color de etiqueta
+        JLabel etiqueta = mapaEtiquetasActual.get(nombreCampo);
+        if (etiqueta != null) {
+            etiqueta.setForeground(COLOR_CAMPO_ERROR);
         }
         
-        // Crear un JOptionPane personalizado para manejar el cierre
-        JOptionPane optionPane = new JOptionPane(
-            panelDialogo,
-            JOptionPane.QUESTION_MESSAGE,
-            JOptionPane.DEFAULT_OPTION,
-            null,
-            opciones,
-            opciones[opciones.length - 1]
-        );
-        
-        JDialog dialog = optionPane.createDialog("Opciones de preinscripción");
-        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        
-        // Agregar WindowListener para manejar el cierre con la X
-        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                // Cuando se cierra con la X, volver a mostrar las opciones
-                dialog.dispose();
-                mostrarOpcionesPostFormulario();
-            }
-        });
-        
-        dialog.setVisible(true);
-        
-        // Obtener la selección del usuario
-        Object selectedValue = optionPane.getValue();
-        
-        // Si el usuario cerró con la X, selectedValue será null
-        if (selectedValue == null) {
-            return; // El usuario cerró con la X, no hacer nada o podrías mostrar advertencia
+        // Cambiar borde del campo
+        JTextField campo = mapaCamposActual.get(nombreCampo);
+        if (campo != null) {
+            campo.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_ERROR, 2),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+            ));
+            campo.requestFocusInWindow();
         }
         
-        int seleccion = -1;
-        for (int i = 0; i < opciones.length; i++) {
-            if (opciones[i].equals(selectedValue)) {
-                seleccion = i;
-                break;
-            }
-        }
-        
-        if (maximoAlcanzado) {
-            if (seleccion == 0) {
-                mostrarAdvertenciaSalir();
-            } else if (seleccion == 1) {
-                enviarFormularioPreinscripcion();
-            }
-        } else {
-            switch (seleccion) {
-                case 0: // Volver
-                    mostrarAdvertenciaSalir();
-                    break;
-                case 1: // Agregar otro estudiante
-                    if (contadorEstudiantes < Acudiente.MAX_ESTUDIANTES) {
-                        mostrarFormularioEstudianteAdicional();
-                    }
-                    break;
-                case 2: // Enviar
-                    enviarFormularioPreinscripcion();
-                    break;
-                default:
-                    // No hacer nada si se cerró con la X
-                    break;
-            }
+        // Mostrar mensaje de error
+        JLabel lblError = mapaErroresActual.get(nombreCampo);
+        if (lblError != null) {
+            lblError.setText(mensaje);
+            lblError.setVisible(true);
         }
     }
-    
+
     /**
-     * Muestra advertencia al intentar salir sin guardar
+     * Crea DTO de estudiante desde mapa de datos
+     */
+    private EstudianteDTO crearDTOEstudianteDesdeMapa(Map<String, String> datos) {
+        return new EstudianteDTO(
+            datos.get("primerNombre"),
+            datos.get("segundoNombre"),
+            datos.get("primerApellido"),
+            datos.get("segundoApellido"),
+            parseIntegerSafe(datos.get("edad")),
+            datos.get("nuip"),
+            datos.get("nombreGrado")
+        );
+    }
+
+    /**
+     * Muestra advertencia al intentar salir
      */
     private void mostrarAdvertenciaSalir() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        
-        // Icono de advertencia
-        JLabel iconLabel = new JLabel("⚠️", SwingConstants.CENTER);
-        iconLabel.setFont(new Font("Dialog", Font.PLAIN, 48));
-        iconLabel.setForeground(COLOR_ADVERTENCIA);
-        panel.add(iconLabel, BorderLayout.NORTH);
-        
-        // Mensaje
-        JLabel mensaje = new JLabel(
-            "<html><center><h2>¡Espera!</h2>" +
-            "Tu preinscripción no se guardará si sales ahora</center></html>",
-            SwingConstants.CENTER
-        );
-        panel.add(mensaje, BorderLayout.CENTER);
-        
         String[] opciones = {"Seguir diligenciando formulario", "Salir"};
+        
         int seleccion = JOptionPane.showOptionDialog(
             null,
-            panel,
+            "<html><center><h2>¡Espera!</h2>" +
+            "Tu preinscripción no se guardará si sales ahora</center></html>",
             "Advertencia",
             JOptionPane.DEFAULT_OPTION,
             JOptionPane.WARNING_MESSAGE,
@@ -510,298 +787,157 @@ public class PreinscripcionFrame {
         );
         
         if (seleccion == 0) {
-            mostrarOpcionesPostFormulario(); // Continuar
+            mostrarOpcionesPostFormulario();
         } else {
-            limpiarDatos(); // Salir y limpiar
+            limpiarDatosTemporales();
         }
     }
     
     /**
-     * Muestra formulario para agregar estudiante adicional
+     * Envía la preinscripción completa al controlador
      */
-    // Modificar el método mostrarFormularioEstudianteAdicional:
-
-    private void mostrarFormularioEstudianteAdicional() {
-        int numeroEstudiante = contadorEstudiantes + 1;
+    private void enviarPreinscripcion() {
+        // 1. Crear DTO del acudiente
+        AcudienteDTO dtoAcudiente = crearDTOAcudiente(datosAcudienteCapturados);
         
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        JLabel lblTitulo = new JLabel(
-            "<html><b>Formulario para el " + 
-            (numeroEstudiante == 2 ? "segundo" : 
-            numeroEstudiante == 3 ? "tercer" : 
-            "cuarto") + " estudiante</b></html>"
-        );
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        panel.add(lblTitulo, gbc);
-        
-        gbc.gridwidth = 1;
-        int fila = 1;
-        
-        String prefijo = "est" + numeroEstudiante + "_";
-        panelFormularioActual = panel;
-        mapaCamposActual.clear();
-        mapaEtiquetasActual.clear();
-        mapaErroresActual.clear();
-        
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Primer nombre", prefijo + "primerNombre", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Nombre", prefijo + "segundoNombre", false);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Primer Apellido", prefijo + "primerApellido", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Segundo Apellido", prefijo + "segundoApellido", false);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "Edad", prefijo + "edad", true);
-        fila = agregarCampoFormulario(panel, gbc, fila++, "NUIP", prefijo + "nuip", true);
-        
-        JLabel lblGrado = new JLabel("Grado al que aspira (*)");
-        gbc.gridx = 0;
-        gbc.gridy = fila;
-        panel.add(lblGrado, gbc);
-        
-        String[] grados = {"Párvulos", "Caminadores", "Pre-Jardín"};
-        JComboBox<String> cmbGrado = new JComboBox<>(grados);
-        cmbGrado.setName(prefijo + "gradoAspira");
-        mapaCamposActual.put(prefijo + "gradoAspira", null);
-        gbc.gridx = 1;
-        panel.add(cmbGrado, gbc);
-        
-        JDialog dialog = new JDialog((Frame) null, "Agregar estudiante", true);
-        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE); // Cambiar esto
-        
-        // Agregar WindowListener para manejar el cierre con la X
-        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                // Preguntar al usuario si está seguro de cancelar
-                int respuesta = JOptionPane.showConfirmDialog(
-                    dialog,
-                    "¿Está seguro que desea cancelar la adición de este estudiante?",
-                    "Confirmar cancelación",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE
-                );
-                if (respuesta == JOptionPane.YES_OPTION) {
-                    dialog.dispose();
-                    // Volver a mostrar las opciones
-                    mostrarOpcionesPostFormulario();
-                }
-                // Si dice NO, no hacer nada (no cerrar)
-            }
-        });
-        
-        dialog.setSize(500, 500);
-        dialog.setLocationRelativeTo(null);
-        
-        JPanel panelPrincipal = new JPanel(new BorderLayout());
-        panelPrincipal.add(panel, BorderLayout.CENTER);
-        
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        
-        JButton btnCancelar = new JButton("Cancelar");
-        btnCancelar.addActionListener(e -> {
-            int respuesta = JOptionPane.showConfirmDialog(
-                dialog,
-                "¿Está seguro que desea cancelar la adición de este estudiante?",
-                "Confirmar cancelación",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
-            );
-            if (respuesta == JOptionPane.YES_OPTION) {
-                dialog.dispose();
-                mostrarOpcionesPostFormulario();
-            }
-        });
-        
-        JButton btnAgregar = new JButton("Agregar");
-        btnAgregar.addActionListener(e -> {
-            if (procesarEstudianteAdicional(dialog, prefijo)) {
-                dialog.dispose();
-                mostrarOpcionesPostFormulario();
-            }
-        });
-        
-        panelBotones.add(btnCancelar);
-        panelBotones.add(btnAgregar);
-        panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
-        
-        dialog.add(panelPrincipal);
-        dialog.setVisible(true);
-    }
-    
-    /**
-     * Procesa el estudiante adicional
-     */
-    private boolean procesarEstudianteAdicional(JDialog dialog, String prefijo) {
-        limpiarErrores();
-        
-        Map<String, String> datosEstudiante = new HashMap<>();
-        
-        // Extraer datos de campos de texto
-        for (Map.Entry<String, JTextField> entry : mapaCamposActual.entrySet()) {
-            String nombre = entry.getKey();
-            JTextField txt = entry.getValue();
-            
-            if (txt != null && nombre.startsWith(prefijo)) {
-                String campo = nombre.substring(prefijo.length());
-                datosEstudiante.put(campo, txt.getText().trim());
-            }
+        // 2. Crear lista de DTOs de estudiantes
+        List<EstudianteDTO> dtosEstudiantes = new ArrayList<>();
+        for (Map<String, String> datosEst : datosEstudiantesCapturados) {
+            dtosEstudiantes.add(crearDTOEstudiante(datosEst));
         }
         
-        // Extraer el combo de grado
-        for (Component comp : panelFormularioActual.getComponents()) {
-            if (comp instanceof JComboBox && comp.getName() != null && 
-                comp.getName().equals(prefijo + "gradoAspira")) {
-                JComboBox<?> cmb = (JComboBox<?>) comp;
-                Object selected = cmb.getSelectedItem();
-                datosEstudiante.put("gradoAspira", selected != null ? selected.toString() : "");
-                break;
-            }
-        }
-        
-        // Validar estudiante (INCLUYENDO DUPLICADOS)
-        ResultadoValidacion validacion = preinscripcionService.validarDatosEstudianteConDuplicados(
-            datosEstudiante.get("primerNombre"),
-            datosEstudiante.get("segundoNombre"),
-            datosEstudiante.get("primerApellido"),
-            datosEstudiante.get("segundoApellido"),
-            parseIntSafe(datosEstudiante.get("edad")),
-            datosEstudiante.get("nuip"),
-            datosEstudiante.get("gradoAspira")
+        // 3. ENVIAR al CONTROLADOR
+        ResultadoOperacion resultado = controlador.registrarPreinscripcion(
+            dtoAcudiente, dtosEstudiantes
         );
         
-        if (!validacion.isValido()) {
-            mostrarErrorEnCampo(prefijo + validacion.getCampo(), validacion.getMensaje());
-            return false;
-        }
-        
-        listaEstudiantes.add(datosEstudiante);
-        contadorEstudiantes = listaEstudiantes.size();
-        return true;
-    }
-    
-    /**
-     * Envía el formulario completo de preinscripción
-     */
-    private void enviarFormularioPreinscripcion() {
-        try {
-            // Crear objeto Acudiente
-            Acudiente acudiente = new Acudiente();
-            acudiente.setNuipUsuario(datosAcudiente.get("nuip"));
-            acudiente.setPrimerNombre(datosAcudiente.get("primerNombre"));
-            acudiente.setSegundoNombre(datosAcudiente.get("segundoNombre"));
-            acudiente.setPrimerApellido(datosAcudiente.get("primerApellido"));
-            acudiente.setSegundoApellido(datosAcudiente.get("segundoApellido"));
-            acudiente.setEdad(parseIntSafe(datosAcudiente.get("edad")));
-            acudiente.setCorreoElectronico(datosAcudiente.get("correoElectronico"));
-            acudiente.setTelefono(datosAcudiente.get("telefono"));
-            
-            // Crear conjunto de estudiantes
-            Set<Estudiante> estudiantes = new HashSet<>();
-            for (Map<String, String> datosEst : listaEstudiantes) {
-                Estudiante estudiante = new Estudiante();
-                estudiante.setPrimerNombre(datosEst.get("primerNombre"));
-                estudiante.setSegundoNombre(datosEst.get("segundoNombre"));
-                estudiante.setPrimerApellido(datosEst.get("primerApellido"));
-                estudiante.setSegundoApellido(datosEst.get("segundoApellido"));
-                estudiante.setEdad(parseIntSafe(datosEst.get("edad")));
-                estudiante.setNuip(datosEst.get("nuip"));
-                
-                String nombreGrado = datosEst.get("gradoAspira");
-                Grado grado = new Grado();
-                grado.setNombreGrado(nombreGrado);
-                estudiante.setGradoAspira(grado);
-                
-                estudiantes.add(estudiante);
-            }
-            
-            // Registrar preinscripción
-            Preinscripcion preinscripcion = preinscripcionService.registrarPreinscripcion(
-                acudiente, estudiantes
-            );
-            
-            // Mostrar mensaje de éxito
-            mostrarExito(
+        // 4. MOSTRAR resultado al usuario
+        if (resultado.isExitoso()) {
+            mostrarMensajeExito(
                 "¡Tu formulario fue enviado correctamente!",
-                "Por favor espera hasta que la institución se comunique contigo para la entrevista"
+                "Por favor espera hasta que la institución se comunique contigo"
             );
-            
-            limpiarDatos();
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarErrorBaseDatos();
+            limpiarDatosTemporales();
+        } else {
+            mostrarMensajeError("Error", resultado.getMensaje());
+        }
+    }
+    
+    // ============================================
+    // MÉTODOS AUXILIARES DE UI
+    // ============================================
+    
+    /**
+     * Muestra un error visual en un campo específico
+     */
+    private void mostrarErrorEnCampo(String nombreCampo, String mensaje) {
+        // Cambiar color de etiqueta
+        JLabel etiqueta = etiquetasActuales.get(nombreCampo);
+        if (etiqueta != null) {
+            etiqueta.setForeground(COLOR_CAMPO_ERROR);
+        }
+        
+        // Cambiar borde del campo
+        JTextField campo = camposActuales.get(nombreCampo);
+        if (campo != null) {
+            campo.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_ERROR, 2),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+            ));
+            campo.requestFocusInWindow();
+        }
+        
+        // Mostrar mensaje de error
+        JLabel lblError = etiquetasErrorActuales.get(nombreCampo);
+        if (lblError != null) {
+            lblError.setText(mensaje);
+            lblError.setVisible(true);
+        }
+    }
+    
+    /**
+     * Limpia todos los errores visuales
+     */
+    private void limpiarErroresVisuales() {
+        for (JLabel etiqueta : etiquetasActuales.values()) {
+            if (etiqueta != null) {
+                etiqueta.setForeground(COLOR_CAMPO_NORMAL);
+            }
+        }
+        
+        for (JTextField campo : camposActuales.values()) {
+            if (campo != null) {
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_NORMAL, 1),
+                    BorderFactory.createEmptyBorder(4, 4, 4, 4)
+                ));
+            }
+        }
+        
+        for (JLabel error : etiquetasErrorActuales.values()) {
+            if (error != null) {
+                error.setText("");
+                error.setVisible(false);
+            }
+        }
+    }
+    
+    /**
+     * Restaura datos en un campo si existen
+     */
+    private void restaurarDatosCampo(JTextField campo, String nombreCampo) {
+        if (nombreCampo.startsWith("est_") && !datosEstudiantesCapturados.isEmpty()) {
+            Map<String, String> datosEst = datosEstudiantesCapturados.get(0);
+            String campoLimpio = nombreCampo.substring(4);
+            if (datosEst.containsKey(campoLimpio)) {
+                campo.setText(datosEst.get(campoLimpio));
+            }
+        } else if (!nombreCampo.startsWith("est_") && !datosAcudienteCapturados.isEmpty()) {
+            if (datosAcudienteCapturados.containsKey(nombreCampo)) {
+                campo.setText(datosAcudienteCapturados.get(nombreCampo));
+            }
         }
     }
     
     /**
      * Muestra mensaje de éxito
      */
-    private void mostrarExito(String titulo, String mensaje) {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        
-        JLabel iconLabel = new JLabel("✓", SwingConstants.CENTER);
-        iconLabel.setFont(new Font("Dialog", Font.BOLD, 64));
-        iconLabel.setForeground(COLOR_EXITO);
-        iconLabel.setOpaque(true);
-        iconLabel.setBackground(COLOR_EXITO);
-        iconLabel.setForeground(Color.WHITE);
-        iconLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        iconLabel.setPreferredSize(new Dimension(100, 100));
-        panel.add(iconLabel, BorderLayout.NORTH);
-        
-        JLabel lblMensaje = new JLabel(
-            "<html><center><h2>" + titulo + "</h2><br>" +
-            mensaje + "</center></html>",
-            SwingConstants.CENTER
-        );
-        panel.add(lblMensaje, BorderLayout.CENTER);
-        
+    private void mostrarMensajeExito(String titulo, String mensaje) {
         JOptionPane.showMessageDialog(
             null,
-            panel,
+            "<html><center><h2>" + titulo + "</h2><br>" + mensaje + "</center></html>",
             "Éxito",
-            JOptionPane.PLAIN_MESSAGE
+            JOptionPane.INFORMATION_MESSAGE
         );
     }
     
     /**
-     * Muestra error de base de datos
+     * Muestra mensaje de error
      */
-    private void mostrarErrorBaseDatos() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        
-        JLabel iconLabel = new JLabel(
-            "<html><center>" +
-            "<span style='font-size:48px'>🗄️</span><br>" +
-            "<span style='font-size:32px; color:red'>✗</span>" +
-            "</center></html>",
-            SwingConstants.CENTER
-        );
-        panel.add(iconLabel, BorderLayout.NORTH);
-        
-        JLabel lblMensaje = new JLabel(
-            "<html><center><h2>ERROR</h2>" +
-            "Hubo un error al acceder a la base de datos,<br>inténtelo nuevamente</center></html>",
-            SwingConstants.CENTER
-        );
-        panel.add(lblMensaje, BorderLayout.CENTER);
-        
+    private void mostrarMensajeError(String titulo, String mensaje) {
         JOptionPane.showMessageDialog(
             null,
-            panel,
+            "<html><center><h2>" + titulo + "</h2><br>" + mensaje + "</center></html>",
             "Error",
             JOptionPane.ERROR_MESSAGE
         );
     }
     
     /**
+     * Limpia los datos temporales capturados
+     */
+    private void limpiarDatosTemporales() {
+        datosAcudienteCapturados.clear();
+        datosEstudiantesCapturados.clear();
+        camposActuales.clear();
+        etiquetasActuales.clear();
+        etiquetasErrorActuales.clear();
+    }
+    
+    /**
      * Convierte String a Integer de forma segura
      */
-    private Integer parseIntSafe(String valor) {
+    private Integer parseIntegerSafe(String valor) {
         if (valor == null || valor.trim().isEmpty()) {
             return null;
         }
@@ -810,18 +946,5 @@ public class PreinscripcionFrame {
         } catch (NumberFormatException e) {
             return null;
         }
-    }
-    
-    /**
-     * Limpia todos los datos temporales
-     */
-    private void limpiarDatos() {
-        datosAcudiente.clear();
-        listaEstudiantes.clear();
-        contadorEstudiantes = 0;
-        mapaCamposActual.clear();
-        mapaEtiquetasActual.clear();
-        mapaErroresActual.clear();
-        panelFormularioActual = null;
     }
 }

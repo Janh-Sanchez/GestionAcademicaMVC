@@ -54,6 +54,15 @@ public class RepositorioGenerico<T> {
     public boolean existe(Integer id) {
         return buscarPorId(id) != null;
     }
+
+    /**
+     * Busca todas las entidades del tipo T
+     */
+    public List<T> buscarTodos() {
+        String jpql = "SELECT e FROM " + tipoEntidad.getSimpleName() + " e";
+        TypedQuery<T> query = entityManager.createQuery(jpql, tipoEntidad);
+        return query.getResultList();
+    }
     
     /**
      * Verifica si existe al menos una entidad que cumpla el criterio

@@ -3,28 +3,26 @@ package com.vista.presentacion;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Optional;
 
 import javax.swing.*;
 
 import com.aplicacion.JPAUtil;
-import com.controlador.servicios.AutenticacionService;
-import com.controlador.servicios.PreinscripcionService;
+import com.controlador.LoginController;
 import com.modelo.dominio.*;
 
 import jakarta.persistence.EntityManager;
 
 public class LoginFrame extends JFrame {
+    private LoginController controller;
     private JTextField txtUsuario;
     private JPasswordField txtContrasena;
     private JButton btnIniciarSesion;
     private JLabel lblError;
-    private AutenticacionService autenticacionService;
     
     private final Color CB=new Color(255,212,160), CBH=new Color(255,230,180), CT=new Color(58,46,46), CF=new Color(255,243,227);
 
-    public LoginFrame(AutenticacionService autenticacionService) {
-        this.autenticacionService = autenticacionService;
+    public LoginFrame() {
+        this.controller = new LoginController();
         inicializarComponentes();
     }
 
@@ -176,23 +174,32 @@ public class LoginFrame extends JFrame {
         String usuario = txtUsuario.getText().trim();
         String contrasena = new String(txtContrasena.getPassword());
         
+        // Validar campos vacíos
         if (usuario.isEmpty() || contrasena.isEmpty()) {
             mostrarError("Por favor, llene todos los campos");
             return;
         }
-
+        
         try {
-            Optional<Usuario> usuarioBDOpt = autenticacionService.iniciarSesion(usuario, contrasena);
+            // Verificar si ya está bloqueado
+            if (controller.estaBloqueado()) {
+                btnIniciarSesion.setEnabled(false);
+                btnIniciarSesion.setBackground(new Color(207, 207, 207));
+                mostrarError("Cuenta bloqueada temporalmente por seguridad");
+                return;
+            }
             
-            if (usuarioBDOpt.isPresent()) {
+            // Intentar autenticar
+            Usuario usuarioAutenticado = controller.autenticar(usuario, contrasena);
+            
+            if (usuarioAutenticado != null) {
                 // Login exitoso
                 lblError.setVisible(false);
-                Usuario usuarioBD = usuarioBDOpt.get();
                 this.dispose();
-                navegarPorRol(usuarioBD);
+                navegarPorRol(usuarioAutenticado);
             } else {
                 // Credenciales incorrectas
-                int intentosRestantes = autenticacionService.getIntentosRestantes();
+                int intentosRestantes = controller.getIntentosRestantes();
                 String mensaje = "Usuario o contraseña incorrectos";
                 
                 if (intentosRestantes > 0) {
@@ -200,7 +207,13 @@ public class LoginFrame extends JFrame {
                 }
                 
                 mostrarError(mensaje);
-                verificarBloqueo();
+                
+                // Verificar si alcanzó el límite
+                if (controller.getIntentosFallidos() >= 3) {
+                    btnIniciarSesion.setEnabled(false);
+                    btnIniciarSesion.setBackground(new Color(207, 207, 207));
+                    mostrarError("Cuenta bloqueada temporalmente por seguridad");
+                }
             }
             
         } catch (IllegalStateException e) {
@@ -209,16 +222,11 @@ public class LoginFrame extends JFrame {
             btnIniciarSesion.setEnabled(false);
             btnIniciarSesion.setBackground(new Color(207, 207, 207));
             
-        } /*catch (RuntimeException e) {
+        } catch (RuntimeException e) {
+            // Error de base de datos
             mostrarError("Error del sistema. Por favor, intente más tarde");
-        }*/
-    }
-
-    private void verificarBloqueo() {
-        if (autenticacionService.getIntentosFallidos() >= 3) {
-            btnIniciarSesion.setEnabled(false);
-            btnIniciarSesion.setBackground(new Color(207, 207, 207));
-            mostrarError("Cuenta bloqueada temporalmente por seguridad");
+            System.err.println("Error de BD: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -328,6 +336,7 @@ public class LoginFrame extends JFrame {
         d.setVisible(true);
     }
 
+    // En el método registrarse(), corregir la línea que crea el nuevo LoginFrame:
     private void registrarse() {
         // Cerrar la ventana de login
         this.dispose();
@@ -338,13 +347,10 @@ public class LoginFrame extends JFrame {
                 // 1. Obtener EntityManager usando tu fábrica JPAUtil
                 EntityManager entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
                 
-                // 2. Instanciar el servicio de preinscripción pasando el EntityManager
-                PreinscripcionService preinscripcionService = new PreinscripcionService(entityManager);
+                // 2. Crear y mostrar el frame de preinscripción
+                PreinscripcionFrame preinscripcionFrame = new PreinscripcionFrame(entityManager);
                 
-                // 3. Crear y mostrar el frame de preinscripción
-                PreinscripcionFrame preinscripcionFrame = new PreinscripcionFrame(preinscripcionService);
-                
-                // 4. Mostrar el formulario de preinscripción en una ventana contenedora
+                // 3. Mostrar el formulario de preinscripción en una ventana contenedora
                 crearVentanaPreinscripcion(preinscripcionFrame, entityManager);
                 
             } catch (Exception e) {
@@ -355,7 +361,7 @@ public class LoginFrame extends JFrame {
                     JOptionPane.ERROR_MESSAGE);
                 
                 // Volver a mostrar el login si hay error
-                new LoginFrame(autenticacionService).setVisible(true);
+                new LoginFrame().setVisible(true); // Sin parámetro ahora
             }
         });
     }
@@ -374,7 +380,7 @@ public class LoginFrame extends JFrame {
                     entityManager.close();
                 }
                 // Opcional: Volver al login
-                new LoginFrame(autenticacionService).setVisible(true);
+                new LoginFrame().setVisible(true);
             }
             
             @Override
@@ -435,7 +441,7 @@ public class LoginFrame extends JFrame {
         JButton btnVolver = new JButton("Volver al Login");
         btnVolver.addActionListener(e -> {
             ((JFrame) SwingUtilities.getWindowAncestor(panel)).dispose();
-            new LoginFrame(autenticacionService).setVisible(true);
+            new LoginFrame().setVisible(true);
         });
         
         JPanel panelInferior = new JPanel();
