@@ -15,8 +15,8 @@ public class Usuario {
     // Constantes de validación
     private static final int MIN_LONGITUD_NOMBRE = 2;
     private static final int MAX_LONGITUD_NOMBRE = 30;
-    private static final int MIN_EDAD_ACUDIENTE = 18;
-    private static final int MAX_EDAD_ACUDIENTE = 80;
+    private static final int MIN_EDAD_USUARIO = 18;
+    private static final int MAX_EDAD_USUARIO = 80;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -74,8 +74,6 @@ public class Usuario {
     // VALIDACIONES DE DOMINIO
     // ============================================
     
-
-    
     /**
      * Valida un nombre (primer o segundo nombre, apellido)
      */
@@ -127,13 +125,13 @@ public class Usuario {
         if (edad == null) {
             return ResultadoValidacionDominio.error("edad", "La edad es obligatoria");
         }
-        if (edad < MIN_EDAD_ACUDIENTE) {
+        if (edad < MIN_EDAD_USUARIO) {
             return ResultadoValidacionDominio.error("edad", 
-                "El acudiente debe ser mayor de " + MIN_EDAD_ACUDIENTE + " años");
+                "El usuario debe ser mayor de " + MIN_EDAD_USUARIO + " años");
         }
-        if (edad > MAX_EDAD_ACUDIENTE) {
+        if (edad > MAX_EDAD_USUARIO) {
             return ResultadoValidacionDominio.error("edad", 
-                "Edad máxima permitida: " + MAX_EDAD_ACUDIENTE + " años");
+                "Edad máxima permitida: " + MAX_EDAD_USUARIO + " años");
         }
         return ResultadoValidacionDominio.exito();
     }
@@ -143,7 +141,7 @@ public class Usuario {
      * Valida todos los datos básicos del usuario
      * Método protegido para que las subclases lo usen
      */
-    protected ResultadoValidacionDominio validarDatosBasicos() {
+    public ResultadoValidacionDominio validarDatosBasicos() {
         // Validar NUIP
         ResultadoValidacionDominio resultado = validarNuip(this.nuipUsuario);
         if (!resultado.isValido()) {

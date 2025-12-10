@@ -2,7 +2,7 @@ package com.vista.presentacion;
 
 import javax.swing.*;
 
-import com.controlador.servicios.GestionUsuariosService;
+import com.controlador.GestionUsuariosController;
 
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -19,11 +19,11 @@ public class AdministrarUsuariosFrame extends JFrame {
     private final Color CT = new Color(58, 46, 46);
     private final Color CF = new Color(255, 243, 227);
     
-    private GestionUsuariosService gestionService;
+    private GestionUsuariosController controller;
     private JFrame ventanaPadre;
     
-    public AdministrarUsuariosFrame(GestionUsuariosService service, JFrame padre) {
-        this.gestionService = service;
+    public AdministrarUsuariosFrame(GestionUsuariosController controller, JFrame padre) {
+        this.controller = controller;
         this.ventanaPadre = padre;
         inicializarComponentes();
     }
@@ -66,7 +66,7 @@ public class AdministrarUsuariosFrame extends JFrame {
         panel.setBackground(CF);
         panel.setBorder(BorderFactory.createEmptyBorder(20, 50, 40, 50));
         
-        // Imagen (la misma del mockup)
+        // Imagen
         java.net.URL url = getClass().getResource("/imagenes/imagenLogin.jpg");
         if (url != null) {
             ImageIcon icon = new ImageIcon(url);
@@ -110,7 +110,7 @@ public class AdministrarUsuariosFrame extends JFrame {
     
     private void abrirCrearUsuario() {
         this.setVisible(false);
-        CrearUsuarioFrame frameCrear = new CrearUsuarioFrame(gestionService, this);
+        CrearUsuarioFrame frameCrear = new CrearUsuarioFrame(controller, this);
         frameCrear.setVisible(true);
     }
     

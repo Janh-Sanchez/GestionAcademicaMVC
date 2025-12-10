@@ -9,6 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 
+import java.util.Random;
+
 @Entity(name = "token_usuario")
 public class TokenUsuario {
     @Id
@@ -36,9 +38,134 @@ public class TokenUsuario {
     public TokenUsuario() {
     }
 
-    // Verificar credenciales
-    public boolean verificarCredenciales(String contrasenaPrueba) {
+    // ============================================
+    // MÉTODOS DE NEGOCIO (LÓGICA DE DOMINIO)
+    // ============================================
 
+    public static TokenUsuario generarTokenDesdeUsuario(
+            String primerNombre, 
+            String segundoNombre,
+            String primerApellido, 
+            String segundoApellido,
+            Rol rol) {
+        
+        // Validar campos obligatorios
+        if (primerNombre == null || primerNombre.isEmpty()) {
+            throw new IllegalArgumentException("El primer nombre es obligatorio para generar el token");
+        }
+        if (primerApellido == null || primerApellido.isEmpty()) {
+            throw new IllegalArgumentException("El primer apellido es obligatorio para generar el token");
+        }
+        if (rol == null) {
+            throw new IllegalArgumentException("El rol es obligatorio para generar el token");
+        }
+        
+        // Construir nombre de usuario según reglas de negocio
+        String nombreUsuario = construirNombreUsuario(
+            primerNombre, segundoNombre, primerApellido, segundoApellido);
+        
+        // Generar contraseña aleatoria
+        String contrasena = generarContrasenaAleatoria();
+        
+        // Crear y retornar el token
+        TokenUsuario token = new TokenUsuario();
+        token.setNombreUsuario(nombreUsuario);
+        token.setContrasena(contrasena);
+        token.setRol(rol);
+        
+        return token;
+    }
+    
+    /**
+     * Construye el nombre de usuario según las reglas de negocio:
+     * - Primera letra del primer nombre
+     * - Primera letra del segundo nombre (si existe)
+     * - Primer apellido completo (sin espacios)
+     * - Primera letra del segundo apellido (si existe)
+     * - Todo en minúsculas y sin tildes
+     */
+    private static String construirNombreUsuario(
+            String primerNombre,
+            String segundoNombre, 
+            String primerApellido,
+            String segundoApellido) {
+        
+        StringBuilder nombreUsuarioBuilder = new StringBuilder();
+        
+        // Primera letra del primer nombre
+        if (!primerNombre.isEmpty()) {
+            nombreUsuarioBuilder.append(primerNombre.charAt(0));
+        }
+        
+        // Primera letra del segundo nombre (si existe)
+        if (segundoNombre != null && !segundoNombre.isEmpty()) {
+            nombreUsuarioBuilder.append(segundoNombre.charAt(0));
+        }
+        
+        // Apellido completo (sin espacios)
+        nombreUsuarioBuilder.append(primerApellido.toLowerCase().replaceAll("\\s+", ""));
+        
+        // Primera letra del segundo apellido (si existe)
+        if (segundoApellido != null && !segundoApellido.isEmpty()) {
+            nombreUsuarioBuilder.append(segundoApellido.toLowerCase().charAt(0));
+        }
+        
+        // Normalizar (eliminar tildes y caracteres especiales)
+        return normalizarTexto(nombreUsuarioBuilder.toString());
+    }
+    
+    /**
+     * Normaliza el texto eliminando tildes y caracteres especiales
+     * Mantiene solo letras y números
+     */
+    private static String normalizarTexto(String texto) {
+        if (texto == null || texto.isEmpty()) {
+            return texto;
+        }
+        
+        // Convertir a minúsculas
+        String normalizado = texto.toLowerCase();
+        
+        // Reemplazar vocales con tildes
+        normalizado = normalizado
+            .replace('á', 'a')
+            .replace('é', 'e')
+            .replace('í', 'i')
+            .replace('ó', 'o')
+            .replace('ú', 'u')
+            .replace('ü', 'u')
+            .replace('ñ', 'n');
+        
+        // Eliminar caracteres especiales, mantener solo letras y números
+        normalizado = normalizado.replaceAll("[^a-z0-9]", "");
+        
+        return normalizado;
+    }
+    
+    /**
+     * Genera una contraseña aleatoria de 8 caracteres
+     * Incluye mayúsculas, minúsculas, números y caracteres especiales
+     */
+    private static String generarContrasenaAleatoria() {
+        String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$";
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(8);
+        
+        for (int i = 0; i < 8; i++) {
+            sb.append(caracteres.charAt(random.nextInt(caracteres.length())));
+        }
+        
+        return sb.toString();
+    }
+
+    // ============================================
+    // VALIDACIONES DE DOMINIO
+    // ============================================
+    
+    /**
+     * Verifica las credenciales del usuario
+     */
+    public boolean verificarCredenciales(String contrasenaPrueba) {
         if (contrasenaPrueba == null || contrasenaPrueba.isEmpty()) {
             return false;
         }
@@ -47,10 +174,12 @@ public class TokenUsuario {
         return credencialesCorrectas;
     }
 
-    // Validaciones de dominio
-
+    /**
+     * Valida un nombre de usuario
+     */
     public static ResultadoValidacionDominio validarUsuario(
-        String nombre, String nombreCampo, boolean esObligatorio){
+            String nombre, String nombreCampo, boolean esObligatorio) {
+        
         if (nombre == null || nombre.trim().isEmpty()) {
             if (esObligatorio) {
                 return ResultadoValidacionDominio.error(nombreCampo, 
@@ -61,7 +190,10 @@ public class TokenUsuario {
         return ResultadoValidacionDominio.exito();
     }
 
-    // Getters y Setters
+    // ============================================
+    // GETTERS Y SETTERS
+    // ============================================
+    
     public Integer getIdToken() { return idToken; }
     public void setIdToken(Integer idToken) { this.idToken = idToken; }
     
@@ -73,5 +205,4 @@ public class TokenUsuario {
 
     public Rol getRol() { return rol; }
     public void setRol(Rol rol) { this.rol = rol; }
-
 }

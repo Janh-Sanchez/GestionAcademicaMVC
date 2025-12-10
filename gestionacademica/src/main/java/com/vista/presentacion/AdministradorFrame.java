@@ -5,26 +5,31 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
 
-import com.controlador.servicios.GestionUsuariosService;
+import com.aplicacion.JPAUtil;
+import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Administrador;
 
 public class AdministradorFrame extends JFrame {
     private Administrador administrador;
-    private GestionUsuariosService gestionService;
+    private GestionUsuariosController controller;
     
     private final Color CB = new Color(255, 212, 160);
     private final Color CBH = new Color(255, 230, 180);
     private final Color CT = new Color(58, 46, 46);
     private final Color CF = new Color(255, 243, 227);
 
-    public AdministradorFrame(Administrador administrador, GestionUsuariosService gestionService) {
+    public AdministradorFrame(Administrador administrador, GestionUsuariosController controller) {
         this.administrador = administrador;
-        this.gestionService = gestionService;
+        this.controller = controller;
         inicializarComponentes();
     }
 
     public AdministradorFrame(Administrador administrador) {
-        this(administrador, new GestionUsuariosService());
+        this.administrador = administrador;
+        // Crear controlador con EntityManager
+        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
+        this.controller = new GestionUsuariosController(em);
+        inicializarComponentes();
     }
 
     private void inicializarComponentes() {
@@ -144,7 +149,7 @@ public class AdministradorFrame extends JFrame {
      */
     private void administrarUsuarios() {
         this.setVisible(false);
-        AdministrarUsuariosFrame frameAdministrar = new AdministrarUsuariosFrame(gestionService, this);
+        AdministrarUsuariosFrame frameAdministrar = new AdministrarUsuariosFrame(controller, this);
         frameAdministrar.setVisible(true);
     }
 
@@ -154,7 +159,7 @@ public class AdministradorFrame extends JFrame {
      */
     private void consultarMiInformacion() {
         ConsultarInformacionDialog dialogo = new ConsultarInformacionDialog(
-            this, administrador, gestionService);
+            this, administrador, controller);
         dialogo.setVisible(true);
     }
 }

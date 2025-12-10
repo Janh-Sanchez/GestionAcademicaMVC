@@ -5,13 +5,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
 
-import com.controlador.servicios.GestionUsuariosService;
+import com.aplicacion.JPAUtil;
+import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Acudiente;
 import com.modelo.dominio.Estudiante;
 
 public class AcudienteFrame extends JFrame {
     private Acudiente acudiente;
-    private GestionUsuariosService gestionService;
+    private GestionUsuariosController controller;
     private JComboBox<String> comboEstudiantes;
     
     private final Color CB = new Color(255, 212, 160);
@@ -19,14 +20,18 @@ public class AcudienteFrame extends JFrame {
     private final Color CT = new Color(58, 46, 46);
     private final Color CF = new Color(255, 243, 227);
 
-    public AcudienteFrame(Acudiente acudiente, GestionUsuariosService gestionService) {
+    public AcudienteFrame(Acudiente acudiente, GestionUsuariosController controller) {
         this.acudiente = acudiente;
-        this.gestionService = gestionService;
+        this.controller = controller;
         inicializarComponentes();
     }
 
-    public AcudienteFrame(Acudiente acudiente) {
-        this(acudiente, new GestionUsuariosService());
+    public AcudienteFrame(Acudiente acudiente){
+        this.acudiente = acudiente;
+        // Crear controlador con EntityManager
+        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
+        this.controller = new GestionUsuariosController(em);
+        inicializarComponentes();
     }
 
     private void inicializarComponentes() {
@@ -200,11 +205,11 @@ public class AcudienteFrame extends JFrame {
         return boton;
     }
 
-    private void consultarMiInformacion() {
-        ConsultarInformacionDialog dialogo = new ConsultarInformacionDialog(
-            this, acudiente, gestionService);
-        dialogo.setVisible(true);
-    }
+        private void consultarMiInformacion() {
+            ConsultarInformacionDialog dialogo = new ConsultarInformacionDialog(
+                this, acudiente, controller);
+            dialogo.setVisible(true);
+        }
 
     private void administrarHojaVida() {
         String estudianteSeleccionado = (String) comboEstudiantes.getSelectedItem();

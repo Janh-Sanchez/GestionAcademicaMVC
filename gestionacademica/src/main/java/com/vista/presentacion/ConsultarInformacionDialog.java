@@ -1,6 +1,6 @@
 package com.vista.presentacion;
 
-import com.controlador.servicios.GestionUsuariosService;
+import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.ResultadoOperacion;
 import com.modelo.dominio.Usuario;
 
@@ -20,13 +20,13 @@ public class ConsultarInformacionDialog extends JDialog {
     private final Color CT = new Color(58, 46, 46);
     
     private Usuario usuarioAutenticado;
-    private GestionUsuariosService gestionService;
+    private GestionUsuariosController controller;
     private JPanel panelInformacion;
     
-    public ConsultarInformacionDialog(JFrame padre, Usuario usuario, GestionUsuariosService service) {
+    public ConsultarInformacionDialog(JFrame padre, Usuario usuario, GestionUsuariosController controller) {
         super(padre, "Mi Información", true);
         this.usuarioAutenticado = usuario;
-        this.gestionService = service;
+        this.controller = controller;
         inicializarComponentes();
     }
     
@@ -144,22 +144,22 @@ public class ConsultarInformacionDialog extends JDialog {
     }
     
     private void cargarInformacion() {
-        // Paso 2-4 del diagrama ACT_CU2.4
+        // Llamar al controlador para obtener la información
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         
-        ResultadoOperacion resultado = gestionService.consultarMiInformacion(usuarioAutenticado);
+        ResultadoOperacion resultado = controller.consultarMiInformacion(usuarioAutenticado);
         
         setCursor(Cursor.getDefaultCursor());
         
         if (!resultado.isExitoso()) {
-            // Paso 6b: Error al acceder a BD
+            // Error al acceder a BD
             JOptionPane.showMessageDialog(this,
                 resultado.getMensaje(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
             dispose();
         } else {
-            // Paso 5: Mostrar información del usuario
+            // Mostrar información del usuario
             Usuario usuarioCompleto = (Usuario) resultado.getDatos();
             mostrarInformacionUsuario(usuarioCompleto);
         }
