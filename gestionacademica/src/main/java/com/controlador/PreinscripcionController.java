@@ -10,7 +10,9 @@ import jakarta.persistence.EntityTransaction;
 import java.time.LocalDate;
 import java.util.*;
 
-public class PreinscripcionController {
+import javax.swing.JFrame;
+
+public class PreinscripcionController extends JFrame{
     private final RepositorioGenerico<Preinscripcion> repoPreinscripcion;
     private final RepositorioGenerico<Acudiente> repoAcudiente;
     private final RepositorioGenerico<Estudiante> repoEstudiante;
@@ -94,7 +96,7 @@ public class PreinscripcionController {
             return ResultadoOperacion.errorValidacion("nuip",
                 "Ya existe un estudiante registrado con este NUIP");
         }
-        
+
         return ResultadoOperacion.exito("Datos válidos");
     }
     
@@ -129,6 +131,13 @@ public class PreinscripcionController {
                 );
             }
             
+            // 🔴 VERIFICAR DUPLICADO DE ACUDIENTE DENTRO DE TRANSACCIÓN
+            if (usuarioRepositorio.existePorNuip(datosAcudiente.nuip)) {
+                transaction.rollback();
+                return ResultadoOperacion.errorValidacion("nuip",
+                    "Ya existe un acudiente registrado con este NUIP");
+            }
+            
             // Guardar acudiente
             repoAcudiente.guardar(acudiente);
             
@@ -143,7 +152,7 @@ public class PreinscripcionController {
             for (EstudianteDTO datosEst : datosEstudiantes) {
                 Estudiante estudiante = construirEstudiante(datosEst);
                 
-                // Validar cada estudiante
+                // Validar cada estudiante (reglas de negocio)
                 ResultadoValidacionDominio validacionEst = estudiante.validar();
                 if (!validacionEst.isValido()) {
                     transaction.rollback();
@@ -151,6 +160,13 @@ public class PreinscripcionController {
                         validacionEst.getCampoInvalido(),
                         validacionEst.getMensajeError()
                     );
+                }
+                
+                // 🔴 VERIFICAR DUPLICADO DE ESTUDIANTE DENTRO DE TRANSACCIÓN
+                if (estudianteRepositorio.existePorNuip(datosEst.nuip)) {
+                    transaction.rollback();
+                    return ResultadoOperacion.errorValidacion("nuip",
+                        "Ya existe un estudiante registrado con este NUIP");
                 }
                 
                 // Establecer relaciones

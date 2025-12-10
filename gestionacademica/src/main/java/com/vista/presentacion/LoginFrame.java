@@ -6,6 +6,7 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.*;
 
+import com.aplicacion.JPAUtil;
 import com.controlador.LoginController;
 import com.modelo.dominio.ResultadoOperacion;
 import com.modelo.dominio.Usuario;
@@ -337,22 +338,30 @@ public class LoginFrame extends JFrame {
      * Abre el formulario de registro/preinscripción
      */
     private void abrirRegistro() {
-        // Cerrar la ventana de login
-        this.dispose();
-        
         SwingUtilities.invokeLater(() -> {
             try {
-                controller.abrirFormularioPreinscripcion();
+                var em = JPAUtil.getEntityManagerFactory().createEntityManager();
+                
+                PreinscripcionFrame preinscripcionDialog = new PreinscripcionFrame(this, em);
+                
+                // Agregar el listener ANTES de mostrar
+                preinscripcionDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+                    @Override
+                    public void windowClosed(java.awt.event.WindowEvent e) {
+                        LoginFrame.this.setVisible(true);
+                        LoginFrame.this.toFront(); // Traer al frente
+                    }
+                });
+                
+                preinscripcionDialog.mostrarFormulario();
                 
             } catch (Exception e) {
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(null, 
-                    "Error al abrir el formulario de preinscripción: " + e.getMessage(),
+                JOptionPane.showMessageDialog(LoginFrame.this, 
+                    "Error al abrir el formulario: " + e.getMessage(),
                     "Error", 
                     JOptionPane.ERROR_MESSAGE);
-                
-                // Volver a mostrar el login si hay error
-                new LoginFrame().setVisible(true);
+                this.setVisible(true); // Mostrar login si hay error
             }
         });
     }

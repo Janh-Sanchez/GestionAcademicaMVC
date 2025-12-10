@@ -12,7 +12,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
-public class PreinscripcionFrame extends JFrame{
+public class PreinscripcionFrame extends JDialog {
     private final PreinscripcionController controlador;
 
     // Datos temporales capturados del usuario 
@@ -36,9 +36,20 @@ public class PreinscripcionFrame extends JFrame{
     private static final Color BORDER_NORMAL = new Color(204, 204, 204);
     private static final Color BORDER_ERROR = new Color(220, 53, 69);
     
-
-    public PreinscripcionFrame(EntityManager entityManager) {
+    // Constructores
+    public PreinscripcionFrame(JFrame padre, EntityManager entityManager) {
+        super(padre, "Formulario de preinscripción", true); // Diálogo modal
         this.controlador = new PreinscripcionController(entityManager);
+        inicializarDatos();
+        inicializarUI();
+    }
+    
+    // Constructor alternativo por compatibilidad
+    public PreinscripcionFrame(EntityManager entityManager) {
+        this((JFrame) null, entityManager);
+    }
+    
+    private void inicializarDatos() {
         this.datosAcudienteCapturados = new HashMap<>();
         this.datosEstudiantesCapturados = new ArrayList<>();
         this.mapaCamposActual = new HashMap<>();
@@ -49,39 +60,43 @@ public class PreinscripcionFrame extends JFrame{
         this.etiquetasErrorActuales = new HashMap<>();
     }
     
+    private void inicializarUI() {
+        setSize(600, 750);
+        setLocationRelativeTo(getParent());
+        setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        setResizable(false);
+        
+        // Configurar el cierre del diálogo
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                manejarCierreDialogo();
+            }
+        });
+    }
+    
     /**
      * Muestra el formulario inicial de preinscripción
      */
-    public void mostrarFormularioPreinscripcion() {
+    public void mostrarFormulario() {
         if (datosEstudiantesCapturados.isEmpty()) {
             limpiarDatosTemporales();
         }
         
-        JDialog dialog = crearDialogoFormulario();
-        dialog.setVisible(true);
+        JPanel panelPrincipal = new JPanel(new BorderLayout());
+        panelFormularioActual = crearPanelFormulario();
+        panelPrincipal.add(panelFormularioActual, BorderLayout.CENTER);
+        panelPrincipal.add(crearPanelBotones(), BorderLayout.SOUTH);
+        
+        getContentPane().removeAll();
+        getContentPane().add(panelPrincipal);
+        
+        setVisible(true);
     }
     
     // ============================================
     // CREACIÓN DE COMPONENTES UI
     // ============================================
-    
-    /**
-     * Crea el diálogo del formulario
-     */
-    private JDialog crearDialogoFormulario() {
-        JDialog dialog = new JDialog((Frame) null, "Formulario de registro", true);
-        dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-        dialog.setSize(600, 750);
-        dialog.setLocationRelativeTo(null);
-        
-        JPanel panelPrincipal = new JPanel(new BorderLayout());
-        panelFormularioActual = crearPanelFormulario();
-        panelPrincipal.add(panelFormularioActual, BorderLayout.CENTER);
-        panelPrincipal.add(crearPanelBotones(dialog), BorderLayout.SOUTH);
-        
-        dialog.add(panelPrincipal);
-        return dialog;
-    }
     
     /**
      * Crea el panel del formulario con todos los campos
@@ -124,7 +139,7 @@ public class PreinscripcionFrame extends JFrame{
     private int agregarEncabezado(JPanel panel, GridBagConstraints gbc, 
                                    int fila, String titulo, String subtitulo) {
         JLabel lblBienvenida = new JLabel(
-            "<html><b>" + titulo + "</b><br>" + subtitulo + "</html>"
+            "<html><div style='text-align: center;'><b>" + titulo + "</b><br>" + subtitulo + "</div></html>"
         );
         gbc.gridx = 0;
         gbc.gridy = fila;
@@ -274,14 +289,14 @@ public class PreinscripcionFrame extends JFrame{
     /**
      * Crea el panel de botones
      */
-    private JPanel crearPanelBotones(JDialog dialog) {
+    private JPanel crearPanelBotones() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         
         JButton btnCancelar = new JButton("Cancelar");
-        btnCancelar.addActionListener(e -> manejarCancelacion(dialog));
+        btnCancelar.addActionListener(e -> manejarCancelacion());
         
         JButton btnContinuar = new JButton("Continuar");
-        btnContinuar.addActionListener(e -> manejarContinuar(dialog));
+        btnContinuar.addActionListener(e -> manejarContinuar());
         
         panel.add(btnCancelar);
         panel.add(btnContinuar);
@@ -296,9 +311,9 @@ public class PreinscripcionFrame extends JFrame{
     /**
      * Maneja el evento de cancelación
      */
-    private void manejarCancelacion(JDialog dialog) {
+    private void manejarCancelacion() {
         int respuesta = JOptionPane.showConfirmDialog(
-            dialog,
+            this,
             "¿Está seguro que desea cancelar? Se perderán todos los datos.",
             "Confirmar cancelación",
             JOptionPane.YES_NO_OPTION,
@@ -307,14 +322,21 @@ public class PreinscripcionFrame extends JFrame{
         
         if (respuesta == JOptionPane.YES_OPTION) {
             limpiarDatosTemporales();
-            dialog.dispose();
+            dispose();
         }
+    }
+    
+    /**
+     * Maneja el cierre del diálogo desde la X
+     */
+    private void manejarCierreDialogo() {
+        manejarCancelacion();
     }
     
     /**
      * Maneja el evento de continuar
      */
-    private void manejarContinuar(JDialog dialog) {
+    private void manejarContinuar() {
         limpiarErroresVisuales();
         
         // 1. CAPTURAR datos del formulario (responsabilidad de la VISTA)
@@ -350,7 +372,7 @@ public class PreinscripcionFrame extends JFrame{
         }
         datosEstudiantesCapturados.add(datosEstudiante);
         
-        dialog.dispose();
+        dispose();
         mostrarOpcionesPostFormulario();
     }
     
@@ -390,7 +412,8 @@ public class PreinscripcionFrame extends JFrame{
         }
         
         // Capturar combo de grado
-        for (Component comp : panelFormularioActual.getComponents()) {
+        Component[] componentes = panelFormularioActual.getComponents();
+        for (Component comp : componentes) {
             if (comp instanceof JComboBox && comp.getName() != null && 
                 comp.getName().equals("est_gradoAspira")) {
                 JComboBox<?> cmb = (JComboBox<?>) comp;
@@ -652,6 +675,16 @@ public class PreinscripcionFrame extends JFrame{
         }
         
         datosEstudiante.put("gradoAspira", cmbGrado.getSelectedItem().toString());
+        
+        // 🔴 VALIDAR DUPLICADOS CON ESTUDIANTES YA CAPTURADOS
+        String nuevoNuip = datosEstudiante.get("nuip");
+        for (Map<String, String> estExistente : datosEstudiantesCapturados) {
+            if (nuevoNuip.equals(estExistente.get("nuip"))) {
+                mostrarErrorEnCampoAdicional("nuip", 
+                    "Ya has registrado un estudiante con este NUIP en esta preinscripción");
+                return false;
+            }
+        }
         
         // Crear DTO para validación
         EstudianteDTO dtoEstudiante = crearDTOEstudianteDesdeMapa(datosEstudiante);

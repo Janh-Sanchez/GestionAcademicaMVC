@@ -138,10 +138,10 @@ public class LoginController {
         }
     }
 
-    public void abrirFormularioPreinscripcion(){
-                var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-                // Crear y mostrar el frame de preinscripción
-                PreinscripcionFrame preinscripcionFrame = new PreinscripcionFrame(em);
-                preinscripcionFrame.mostrarFormularioPreinscripcion();
+    public void abrirFormularioPreinscripcion(JFrame padre){
+        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
+        PreinscripcionFrame preinscripcionDialog = new PreinscripcionFrame(padre, em);
+        preinscripcionDialog.setModal(false);
+        preinscripcionDialog.mostrarFormulario();
     }
 }

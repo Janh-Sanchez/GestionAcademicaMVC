@@ -38,7 +38,7 @@ public class Estudiante {
     private String nuip;
 
     @Column(nullable = false)
-    private int edad;
+    private Integer edad;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -79,7 +79,7 @@ public class Estudiante {
 
     public Estudiante(Integer idEstudiante, String primerNombre, String segundoNombre, 
                      String primerApellido, String segundoApellido, String nuip, 
-                     int edad, Estado estado, Acudiente acudiente, Grado gradoAspira, 
+                     Integer edad, Estado estado, Acudiente acudiente, Grado gradoAspira, 
                      Grupo grupo, HojaVida hojaDeVida, Observador observador, 
                      Set<LogroEstudiante> logrosCalificados, Set<Boletin> boletines) {
         this.idEstudiante = idEstudiante;
@@ -252,8 +252,8 @@ public class Estudiante {
     public String getNuip() { return nuip; }
     public void setNuip(String nuip) { this.nuip = nuip; }
     
-    public int getEdad() { return edad; }
-    public void setEdad(int edad) { this.edad = edad; }
+    public Integer getEdad() { return edad; }
+    public void setEdad(Integer edad) { this.edad = edad; }
     
     public Estado getEstado() { return estado; }
     public void setEstado(Estado estado) { this.estado = estado; }
