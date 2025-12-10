@@ -166,7 +166,8 @@ public class DirectivoFrame extends JFrame {
     }
 
     private void administrarGrupos() {
-        mostrarMensajeDesarrollo("Administrar Grupos");
+        AsignarProfesoresPanel asignarProfesoresPanel = new AsignarProfesoresPanel();
+        asignarProfesoresPanel.setVisible(true);
     }
 
     private void administrarHojaVida() {

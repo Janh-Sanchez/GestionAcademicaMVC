@@ -195,8 +195,8 @@ public class ConsultarInformacionDialog extends JDialog {
         
         // Agregar información específica según el tipo de usuario
         if (usuario instanceof com.modelo.dominio.Profesor profesor) {
-            if (profesor.getGrupo() != null) {
-                panelInformacion.add(crearCampoInfo("Grupo asignado:", profesor.getGrupo().getNombreGrupo()));
+            if (profesor.getGrupoAsignado() != null) {
+                panelInformacion.add(crearCampoInfo("Grupo asignado:", profesor.getGrupoAsignado().getNombreGrupo()));
                 panelInformacion.add(Box.createVerticalStrut(15));
             }
         } else if (usuario instanceof com.modelo.dominio.Acudiente acudiente) {
