@@ -161,7 +161,8 @@ public class DirectivoFrame extends JFrame {
     }
 
     private void consultarAspirantes() {
-        mostrarMensajeDesarrollo("Consultar Lista de Aspirantes");
+        ListaAspirantesPanel listaAspirantesPanel = new ListaAspirantesPanel();
+        listaAspirantesPanel.setVisible(true);
     }
 
     private void administrarGrupos() {
