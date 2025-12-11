@@ -8,11 +8,6 @@ import jakarta.persistence.EntityTransaction;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Controlador para gestionar la aprobación y rechazo de aspirantes
- * Implementa RF 3.4 - Aprobar o rechazar aspirante
- * Arquitectura MVC limpia sin servicios intermedios
- */
 public class GestionAspirantesController {
     
     private final EntityManager entityManager;
@@ -83,18 +78,23 @@ public class GestionAspirantesController {
      */
     public ResultadoOperacion obtenerListaAspirantes() {
         try {
-            // Obtener preinscripciones PENDIENTES
-            List<Preinscripcion> preinscripciones = repoPreinscripcion.buscarPorEstado(Estado.Pendiente);
+            // Obtener TODAS las preinscripciones (no solo las pendientes)
+            List<Preinscripcion> preinscripciones = repoPreinscripcion.buscarTodos();
             
             if (preinscripciones.isEmpty()) {
                 return ResultadoOperacion.error("VACIA");
             }
             
-            // Convertir a DTOs y filtrar aquellos que tengan estudiantes pendientes
+            // Convertir a DTOs y filtrar aquellas que tengan estudiantes pendientes
             List<AspiranteDTO> aspirantes = preinscripciones.stream()
                 .map(this::convertirADTO)
                 .filter(Objects::nonNull) // Filtrar nulos (sin estudiantes pendientes)
-                .filter(dto -> !dto.getEstudiantes().isEmpty()) // Asegurar que tenga estudiantes
+                .filter(dto -> !dto.getEstudiantes().isEmpty()) // Asegurar que tenga estudiantes pendientes
+                .sorted((a1, a2) -> {
+                    // Ordenar primero por estado de preinscripción (pendientes primero)
+                    // Esto requiere obtener la preinscripción nuevamente, o podemos modificar DTO
+                    return 0; // Orden simple por ahora
+                })
                 .collect(Collectors.toList());
             
             if (aspirantes.isEmpty()) {
@@ -139,29 +139,10 @@ public class GestionAspirantesController {
             Preinscripcion preinscripcion = repoPreinscripcion
                 .obtenerPreinscripcionPorEstudiante(estudiante);
             
-            // 3. Verificar si el acudiente necesita ser aprobado
-            // ACUDIENTE SE APRUEBA CON EL PRIMER ESTUDIANTE APROBADO
-            if (acudiente.getEstadoAprobacion() != Estado.Aprobada) {
-                // Aprobar acudiente (primer estudiante aprobado)
-                acudiente.setEstadoAprobacion(Estado.Aprobada);
-                
-                // Generar token de acceso usando lógica de dominio
-                ResultadoOperacion resultadoToken = generarTokenParaAcudiente(acudiente);
-                if (!resultadoToken.isExitoso()) {
-                    transaction.rollback();
-                    return resultadoToken;
-                }
-                
-                repoAcudiente.guardar(acudiente);
-                
-                System.out.println("Acudiente aprobado. ID: " + acudiente.getIdUsuario() + 
-                                ", Correo: " + acudiente.getCorreoElectronico());
-            }
-            
-            // 4. Aprobar estudiante
+            // 3. Aprobar estudiante
             estudiante.setEstado(Estado.Aprobada);
             
-            // 5. Asignar estudiante a grupo usando lógica de dominio
+            // 4. Asignar estudiante a grupo
             ResultadoOperacion resultadoAsignacion = asignarEstudianteAGrupo(estudiante);
             if (!resultadoAsignacion.isExitoso()) {
                 transaction.rollback();
@@ -170,7 +151,7 @@ public class GestionAspirantesController {
             
             repoEstudiante.guardar(estudiante);
             
-            // 6. Actualizar estado de preinscripción
+            // 5. Actualizar estado de preinscripción y acudiente
             if (preinscripcion != null) {
                 actualizarEstadoPreinscripcion(preinscripcion);
             }
@@ -193,72 +174,49 @@ public class GestionAspirantesController {
      * RF 3.4 - Rechazar aspirante
      */
     public ResultadoOperacion rechazarEstudiante(Integer idEstudiante) {
-    EntityTransaction transaction = entityManager.getTransaction();
-    
-    try {
-        transaction.begin();
+        EntityTransaction transaction = entityManager.getTransaction();
         
-        // 1. Buscar y validar estudiante
-        Optional<Estudiante> estudianteOpt = repoEstudiante.buscarPorId(idEstudiante);
-        if (estudianteOpt.isEmpty()) {
-            transaction.rollback();
-            return ResultadoOperacion.error("Estudiante no encontrado");
-        }
-        
-        Estudiante estudiante = estudianteOpt.get();
-        Acudiente acudiente = estudiante.getAcudiente();
-        
-        if (acudiente == null) {
-            transaction.rollback();
-            return ResultadoOperacion.error("Acudiente no encontrado");
-        }
-        
-        // 2. Obtener preinscripción
-        Preinscripcion preinscripcion = repoPreinscripcion
-            .obtenerPreinscripcionPorEstudiante(estudiante);
-        
-        // 3. Verificar estado de otros estudiantes del acudiente
-        boolean tieneEstudiantesPendientes = 
-            repoAcudiente.tieneEstudiantesPendientes(acudiente, idEstudiante);
-        boolean tieneEstudiantesAprobados = 
-            repoAcudiente.tieneEstudiantesAprobados(acudiente);
-        
-        // 4. SOLO RECHAZAR ACUDIENTE SI:
-        //    - NO tiene estudiantes aprobados
-        //    - NO tiene más estudiantes pendientes
-        //    - (ya que si tiene aprobados, ya está aprobado)
-        //    - (si tiene pendientes, aún puede que algunos sean aprobados)
-        
-        if (!tieneEstudiantesAprobados && !tieneEstudiantesPendientes) {
-            // Verificar si TODOS los estudiantes están rechazados
-            boolean todosEstudiantesRechazados = acudiente.getEstudiantes().stream()
-                .allMatch(e -> e.getEstado() == Estado.Rechazada);
+        try {
+            transaction.begin();
             
-            if (todosEstudiantesRechazados) {
-                acudiente.setEstadoAprobacion(Estado.Rechazada);
-                repoAcudiente.guardar(acudiente);
+            // 1. Buscar y validar estudiante
+            Optional<Estudiante> estudianteOpt = repoEstudiante.buscarPorId(idEstudiante);
+            if (estudianteOpt.isEmpty()) {
+                transaction.rollback();
+                return ResultadoOperacion.error("Estudiante no encontrado");
             }
-        }
-        
-        // 5. Rechazar estudiante
-        estudiante.setEstado(Estado.Rechazada);
-        repoEstudiante.guardar(estudiante);
-        
-        // 6. Actualizar estado de preinscripción
-        if (preinscripcion != null) {
-            actualizarEstadoPreinscripcion(preinscripcion);
-        }
-        
-        transaction.commit();
-        return ResultadoOperacion.exito("¡Listo! El estudiante fue rechazado con éxito");
-        
-    } catch (Exception e) {
-        if (transaction.isActive()) {
-            transaction.rollback();
-        }
-        e.printStackTrace();
-        return ResultadoOperacion.error(
-            "Error al acceder a la base de datos, inténtelo nuevamente");
+            
+            Estudiante estudiante = estudianteOpt.get();
+            Acudiente acudiente = estudiante.getAcudiente();
+            
+            if (acudiente == null) {
+                transaction.rollback();
+                return ResultadoOperacion.error("Acudiente no encontrado");
+            }
+            
+            // 2. Obtener preinscripción
+            Preinscripcion preinscripcion = repoPreinscripcion
+                .obtenerPreinscripcionPorEstudiante(estudiante);
+            
+            // 3. Rechazar estudiante
+            estudiante.setEstado(Estado.Rechazada);
+            repoEstudiante.guardar(estudiante);
+            
+            // 4. Actualizar estado de preinscripción y acudiente
+            if (preinscripcion != null) {
+                actualizarEstadoPreinscripcion(preinscripcion);
+            }
+            
+            transaction.commit();
+            return ResultadoOperacion.exito("¡Listo! El estudiante fue rechazado con éxito");
+            
+        } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            e.printStackTrace();
+            return ResultadoOperacion.error(
+                "Error al acceder a la base de datos, inténtelo nuevamente");
         }
     }
 
@@ -371,7 +329,6 @@ public class GestionAspirantesController {
         // Optimización: Ordenar grupos inactivos por cantidad de estudiantes (descendente)
         // Esto prioriza llenar primero los grupos que ya tienen más estudiantes
         
-        // Prioridad 1: Grupos inactivos que necesitan completarse
         List<Grupo> gruposInactivos = new ArrayList<>();
         for (Grupo grupo : grupos) {
             if (!grupo.isEstado() && !grupo.tieneEstudiantesSuficientes() && grupo.tieneDisponibilidad()) {
@@ -433,17 +390,20 @@ public class GestionAspirantesController {
 
     /**
      * Actualiza el estado de la preinscripción y del acudiente basado en el estado de sus estudiantes
-     * Reglas:
-     * - Al menos uno aprobado → Preinscripción Aprobada, Acudiente Aprobado (con token)
-     * - Todos rechazados → Preinscripción Rechazada, Acudiente Rechazado
-     * - Ningún aprobado y al menos uno pendiente → Preinscripción Pendiente, Acudiente Pendiente
+     * Reglas simplificadas:
+     * 1. TODOS rechazados → Rechazados ambos
+     * 2. Al menos 1 aprobado y CERO pendientes → Aprobados ambos
+     * 3. Pendientes > 0 → Pendientes ambos (si acudiente no está ya aprobado)
      */
     private void actualizarEstadoPreinscripcion(Preinscripcion preinscripcion) {
-        if (preinscripcion == null || preinscripcion.getEstudiantes() == null || preinscripcion.getAcudiente() == null) {
+        if (preinscripcion == null || preinscripcion.getEstudiantes() == null) {
             return;
         }
-        
+
         Acudiente acudiente = preinscripcion.getAcudiente();
+        if (acudiente == null) {
+            return;
+        }
         
         // Contar estudiantes por estado
         long pendientes = preinscripcion.getEstudiantes().stream()
@@ -460,49 +420,54 @@ public class GestionAspirantesController {
         
         long total = preinscripcion.getEstudiantes().size();
         
-        // Aplicar reglas de negocio para la preinscripción y el acudiente
-        if (aprobados > 0) {
-            // AL MENOS UN ESTUDIANTE APROBADO
-            preinscripcion.setEstado(Estado.Aprobada);
+        // Determinar nuevo estado
+        Estado nuevoEstado = preinscripcion.getEstado();
+        
+        if (rechazados == total) {
+            // TODOS rechazados
+            nuevoEstado = Estado.Rechazada;
+        } else if (aprobados > 0 && pendientes == 0) {
+            // Al menos uno aprobado y NINGUNO pendiente
+            nuevoEstado = Estado.Aprobada;
             
-            // Si el acudiente aún no está aprobado, aprobarlo y generar token
+            // Si acudiente no está aprobado, aprobarlo ahora
             if (acudiente.getEstadoAprobacion() != Estado.Aprobada) {
-                acudiente.setEstadoAprobacion(Estado.Aprobada);
                 // Generar token si no existe
                 if (acudiente.getTokenAccess() == null) {
                     ResultadoOperacion resultadoToken = generarTokenParaAcudiente(acudiente);
                     if (!resultadoToken.isExitoso()) {
-                        // Solo loguear error, no fallar la operación
                         System.err.println("Error generando token: " + resultadoToken.getMensaje());
                     }
                 }
-                repoAcudiente.guardar(acudiente);
             }
-            
-        } else if (rechazados == total) {
-            preinscripcion.setEstado(Estado.Rechazada);
-            
-            // Rechazar también al acudiente si no tiene otros estudiantes aprobados
-            // Verificar si el acudiente tiene estudiantes en otras preinscripciones
-            boolean tieneEstudiantesAprobadosEnOtros = repoAcudiente.tieneEstudiantesAprobados(acudiente);
-            
-            if (!tieneEstudiantesAprobadosEnOtros) {
-                acudiente.setEstadoAprobacion(Estado.Rechazada);
-                repoAcudiente.guardar(acudiente);
-            }
-            
         } else if (pendientes > 0) {
-            preinscripcion.setEstado(Estado.Pendiente);
+            // Hay pendientes
+            nuevoEstado = Estado.Pendiente;
             
-            // Solo establecer acudiente como pendiente si no está aprobado ya
+            // Solo poner acudiente como pendiente si no está aprobado
             if (acudiente.getEstadoAprobacion() != Estado.Aprobada) {
                 acudiente.setEstadoAprobacion(Estado.Pendiente);
-                repoAcudiente.guardar(acudiente);
             }
         }
         
-        // Guardar cambios en la preinscripción
-        repoPreinscripcion.guardar(preinscripcion);
+        // Actualizar preinscripción si cambió
+        boolean cambios = false;
+        if (preinscripcion.getEstado() != nuevoEstado) {
+            preinscripcion.setEstado(nuevoEstado);
+            cambios = true;
+        }
+        
+        // Actualizar acudiente si cambió
+        if (acudiente.getEstadoAprobacion() != nuevoEstado) {
+            acudiente.setEstadoAprobacion(nuevoEstado);
+            cambios = true;
+        }
+        
+        // Guardar cambios si los hubo
+        if (cambios) {
+            repoPreinscripcion.guardar(preinscripcion);
+            repoAcudiente.guardar(acudiente);
+        }
     }
     
     /**
@@ -511,13 +476,18 @@ public class GestionAspirantesController {
     private String generarNombreGrupo(Grado grado, Long cantidadGrupos) {
         return String.format("%s-%d", grado.getNombreGrado(), cantidadGrupos + 1);
     }
-    
+
     /**
-     * Convierte una entidad de preinscripción a DTO para la vista
-     * SOLO incluye estudiantes con estado PENDIENTE
+     * Convierte una entidad de preinscripcion a DTO para la vista
+     * Incluye preinscripciones que tengan AL MENOS UN estudiante pendiente
+     * (sin importar el estado de la preinscripción)
      */
     private AspiranteDTO convertirADTO(Preinscripcion preinscripcion) {
         Acudiente acudiente = preinscripcion.getAcudiente();
+        if (acudiente == null) {
+            return null;
+        }
+        
         String nombreAcudiente = acudiente.obtenerNombreCompleto();
         
         // FILTRAR SOLO ESTUDIANTES PENDIENTES

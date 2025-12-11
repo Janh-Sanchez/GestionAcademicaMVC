@@ -71,4 +71,13 @@ public class PreinscripcionRepositorio extends RepositorioGenerico<Preinscripcio
             return null;
         }
     }
+
+    // En PreinscripcionRepositorio.java agregar:
+    public List<Preinscripcion> buscarTodos() {
+        String jpql = "SELECT p FROM preinscripcion p " +
+                    "ORDER BY p.fechaRegistro ASC";
+        
+        return entityManager.createQuery(jpql, Preinscripcion.class)
+            .getResultList();
+    }
 }

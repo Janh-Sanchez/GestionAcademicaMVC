@@ -24,22 +24,26 @@ public class MainTest {
             // 3. Crear grados disponibles (incluyendo Párvulos, Caminadores, Pre-Jardín)
             crearGrados(em);
             
-            // 4. Crear acudientes con datos válidos
+            // 4. Crear acudientes con datos válidos - TODOS PENDIENTES
             List<Acudiente> acudientes = crearAcudientes(em);
             
             // 5. Crear estudiantes para diferentes grados y estados
             List<Estudiante> estudiantesPrimero = crearEstudiantesPrimero(em, acudientes);
             List<Estudiante> estudiantesOtrosGrados = crearEstudiantesOtrosGrados(em, acudientes);
             
+            // 5b. Crear más acudientes específicamente para pruebas de aspirantes
+            List<Acudiente> acudientesAspirantes = crearAcudientesAspirantes(em);
+            acudientes.addAll(acudientesAspirantes);
+            
             // Combinar todos los estudiantes
             List<Estudiante> todosEstudiantes = new ArrayList<>();
             todosEstudiantes.addAll(estudiantesPrimero);
             todosEstudiantes.addAll(estudiantesOtrosGrados);
             
-            // 6. Crear preinscripciones
+            // 6. Crear preinscripciones - TODAS PENDIENTES
             crearPreinscripciones(em, acudientes, todosEstudiantes);
             
-            // 7. Aprobar algunos estudiantes para crear grupos
+            // 7. Aprobar algunos estudiantes PERO NO LOS ACUDIENTES
             aprobarAlgunosEstudiantes(em, todosEstudiantes);
             
             // 8. Crear grupos para diferentes grados con estudiantes aprobados
@@ -81,12 +85,12 @@ public class MainTest {
             em.createQuery("DELETE FROM Estudiante").executeUpdate();
             em.createQuery("DELETE FROM Preinscripcion").executeUpdate();
             em.createQuery("DELETE FROM Acudiente").executeUpdate();
-            em.createQuery("DELETE FROM Grupo").executeUpdate();
+            em.createQuery("DELETE FROM grupo").executeUpdate();
             em.createQuery("DELETE FROM Profesor").executeUpdate();
             em.createQuery("DELETE FROM Directivo").executeUpdate();
-            em.createQuery("DELETE FROM TokenUsuario").executeUpdate();
+            em.createQuery("DELETE FROM token_usuario").executeUpdate();
             em.createQuery("DELETE FROM Usuario").executeUpdate();
-            em.createQuery("DELETE FROM Grado").executeUpdate();
+            em.createQuery("DELETE FROM grado").executeUpdate();
             em.createQuery("DELETE FROM Rol").executeUpdate();
             em.createQuery("DELETE FROM Permiso").executeUpdate();
             
@@ -227,7 +231,7 @@ public class MainTest {
         try {
             tx.begin();
             
-            System.out.println("Creando acudientes de prueba...");
+            System.out.println("Creando acudientes de prueba (TODOS PENDIENTES)...");
             
             // Datos de prueba válidos (cumplen todas las validaciones)
             Object[][] datosAcudientes = {
@@ -235,9 +239,7 @@ public class MainTest {
                 {"María", "Isabel", "González", "Pérez", 35, "1234567890", "maria.gonzalez@email.com", "3101234567"},
                 {"Carlos", "Alberto", "Rodríguez", "López", 40, "2345678901", "carlos.rodriguez@email.com", "3112345678"},
                 {"Ana", "Sofía", "Martínez", "García", 38, "3456789012", "ana.martinez@email.com", "3123456789"},
-                {"Luis", "Fernando", "Hernández", "Díaz", 42, "4567890123", "luis.hernandez@email.com", "3134567890"},
-                {"Laura", "Patricia", "Sánchez", "Ramírez", 36, "5678901234", "laura.sanchez@email.com", "3145678901"},
-                {"Roberto", "Antonio", "Jiménez", "Vargas", 45, "6789012345", "roberto.jimenez@email.com", "3156789012"}
+                {"Luis", "Fernando", "Hernández", "Díaz", 42, "4567890123", "luis.hernandez@email.com", "3134567890"}
             };
             
             int contador = 1;
@@ -251,6 +253,8 @@ public class MainTest {
                 acudiente.setNuipUsuario((String) datos[5]);
                 acudiente.setCorreoElectronico((String) datos[6]);
                 acudiente.setTelefono((String) datos[7]);
+                
+                // ¡IMPORTANTE! TODOS PENDIENTES inicialmente
                 acudiente.setEstadoAprobacion(Estado.Pendiente);
                 
                 // Validar datos antes de persistir
@@ -264,12 +268,72 @@ public class MainTest {
                 acudientes.add(acudiente);
                 
                 System.out.println("  ✓ Acudiente " + contador + ": " + 
-                    acudiente.obtenerNombreCompleto());
+                    acudiente.obtenerNombreCompleto() + " (Estado: " + acudiente.getEstadoAprobacion() + ")");
                 contador++;
             }
             
             tx.commit();
-            System.out.println("✓ " + acudientes.size() + " acudientes creados exitosamente\n");
+            System.out.println("✓ " + acudientes.size() + " acudientes creados (todos pendientes)\n");
+            return acudientes;
+            
+        } catch (Exception e) {
+            if (tx.isActive()) tx.rollback();
+            throw e;
+        }
+    }
+    
+    private static List<Acudiente> crearAcudientesAspirantes(EntityManager em) {
+        EntityTransaction tx = em.getTransaction();
+        List<Acudiente> acudientes = new ArrayList<>();
+        
+        try {
+            tx.begin();
+            
+            System.out.println("Creando acudientes aspirantes adicionales (para administración)...");
+            
+            // 6 acudientes adicionales específicamente para probar la administración de aspirantes
+            Object[][] datosAcudientesAspirantes = {
+                // primerNombre, segundoNombre, primerApellido, segundoApellido, edad, nuip, correo, telefono
+                {"Laura", "Patricia", "Sánchez", "Ramírez", 36, "5678901234", "laura.sanchez@email.com", "3145678901"},
+                {"Roberto", "Antonio", "Jiménez", "Vargas", 45, "6789012345", "roberto.jimenez@email.com", "3156789012"},
+                {"Carmen", "Elena", "Morales", "Castaño", 32, "7890123456", "carmen.morales@email.com", "3167890123"},
+                {"Javier", "Andrés", "Ortiz", "Vega", 41, "8901234567", "javier.ortiz@email.com", "3178901234"},
+                {"Patricia", "Lucía", "Castro", "Mendoza", 39, "9012345678", "patricia.castro@email.com", "3189012345"},
+                {"Fernando", "José", "Navarro", "Ríos", 44, "0123456789", "fernando.navarro@email.com", "3190123456"}
+            };
+            
+            int contador = 1;
+            for (Object[] datos : datosAcudientesAspirantes) {
+                Acudiente acudiente = new Acudiente();
+                acudiente.setPrimerNombre((String) datos[0]);
+                acudiente.setSegundoNombre((String) datos[1]);
+                acudiente.setPrimerApellido((String) datos[2]);
+                acudiente.setSegundoApellido((String) datos[3]);
+                acudiente.setEdad((Integer) datos[4]);
+                acudiente.setNuipUsuario((String) datos[5]);
+                acudiente.setCorreoElectronico((String) datos[6]);
+                acudiente.setTelefono((String) datos[7]);
+                
+                // ¡IMPORTANTE! TODOS PENDIENTES inicialmente
+                acudiente.setEstadoAprobacion(Estado.Pendiente);
+                
+                // Validar datos antes de persistir
+                ResultadoValidacionDominio validacion = acudiente.validar();
+                if (!validacion.isValido()) {
+                    throw new RuntimeException("Error validando acudiente aspirante " + contador + 
+                        ": " + validacion.getMensajeError());
+                }
+                
+                em.persist(acudiente);
+                acudientes.add(acudiente);
+                
+                System.out.println("  ✓ Acudiente aspirante " + contador + ": " + 
+                    acudiente.obtenerNombreCompleto() + " (Estado: " + acudiente.getEstadoAprobacion() + ")");
+                contador++;
+            }
+            
+            tx.commit();
+            System.out.println("✓ " + acudientes.size() + " acudientes aspirantes adicionales creados (todos pendientes)\n");
             return acudientes;
             
         } catch (Exception e) {
@@ -477,7 +541,7 @@ public class MainTest {
         try {
             tx.begin();
             
-            System.out.println("Creando preinscripciones...");
+            System.out.println("Creando preinscripciones (TODAS PENDIENTES)...");
             
             // Agrupar estudiantes por acudiente
             Map<Acudiente, List<Estudiante>> estudiantesPorAcudiente = new HashMap<>();
@@ -495,19 +559,9 @@ public class MainTest {
                 Preinscripcion preinscripcion = new Preinscripcion();
                 preinscripcion.setFechaRegistro(LocalDate.now());
                 
-                // Determinar estado de preinscripción basado en estudiantes
-                boolean tieneAprobados = estudiantesAcudiente.stream()
-                    .anyMatch(e -> e.getEstado() == Estado.Aprobada);
-                boolean todosPendientes = estudiantesAcudiente.stream()
-                    .allMatch(e -> e.getEstado() == Estado.Pendiente);
-                
-                if (tieneAprobados) {
-                    preinscripcion.setEstado(Estado.Aprobada);
-                } else if (todosPendientes) {
-                    preinscripcion.setEstado(Estado.Pendiente);
-                } else {
-                    preinscripcion.setEstado(Estado.Pendiente);
-                }
+                // ¡IMPORTANTE! TODAS las preinscripciones PENDIENTES inicialmente
+                // El directivo debe aprobarlas manualmente
+                preinscripcion.setEstado(Estado.Pendiente);
                 
                 preinscripcion.setAcudiente(acudiente);
                 preinscripcion.setEstudiantes(new HashSet<>(estudiantesAcudiente));
@@ -519,14 +573,21 @@ public class MainTest {
                 
                 em.persist(preinscripcion);
                 
+                // Contar estudiantes aprobados en esta preinscripción
+                long estudiantesAprobados = estudiantesAcudiente.stream()
+                    .filter(e -> e.getEstado() == Estado.Aprobada)
+                    .count();
+                
                 System.out.println("  ✓ Preinscripción " + contador + ": Acudiente " + 
-                    acudiente.getPrimerNombre() + " - " + estudiantesAcudiente.size() + 
-                    " estudiantes (Estado: " + preinscripcion.getEstado() + ")");
+                    acudiente.getPrimerNombre() + " " + acudiente.getPrimerApellido() + 
+                    " - " + estudiantesAcudiente.size() + " estudiantes (" + 
+                    estudiantesAprobados + " aprobados)" + 
+                    " (Estado: " + preinscripcion.getEstado() + ")");
                 contador++;
             }
             
             tx.commit();
-            System.out.println("✓ Preinscripciones creadas exitosamente\n");
+            System.out.println("✓ " + estudiantesPorAcudiente.size() + " preinscripciones creadas (TODAS PENDIENTES)\n");
         } catch (Exception e) {
             if (tx.isActive()) tx.rollback();
             throw e;
@@ -541,24 +602,20 @@ public class MainTest {
             
             System.out.println("Aprobando algunos estudiantes para crear grupos...");
             
-            // Aprobar estudiantes de Caminadores y Pre-Jardín (ya están como Aprobada en datos)
-            // Actualizar acudientes correspondientes
+            // Solo aprobar estudiantes de Caminadores y Pre-Jardín (estos ya están como Aprobada en datos)
+            // ¡IMPORTANTE! NO APROBAR ACUDIENTES AUTOMÁTICAMENTE
             int aprobados = 0;
             
             for (Estudiante estudiante : estudiantes) {
                 if (estudiante.getEstado() == Estado.Aprobada) {
-                    // Actualizar acudiente si tiene al menos un estudiante aprobado
-                    Acudiente acudiente = estudiante.getAcudiente();
-                    if (acudiente.getEstadoAprobacion() == Estado.Pendiente) {
-                        acudiente.setEstadoAprobacion(Estado.Aprobada);
-                        em.merge(acudiente);
-                    }
                     aprobados++;
+                    // NOTA: NO APROBAMOS AL ACUDIENTE aquí
+                    // El directivo debe aprobarlo manualmente en la interfaz
                 }
             }
             
             tx.commit();
-            System.out.println("✓ " + aprobados + " estudiantes aprobados y acudientes actualizados\n");
+            System.out.println("✓ " + aprobados + " estudiantes ya aprobados (acudientes permanecen pendientes)\n");
         } catch (Exception e) {
             if (tx.isActive()) tx.rollback();
             throw e;
@@ -688,7 +745,7 @@ public class MainTest {
             Rol rolDirectivo = rolRepo.buscarPorNombreRol("directivo")
                 .orElseThrow(() -> new RuntimeException("Rol directivo no encontrado"));
             
-            // Crear profesor 1
+            // Crear profesor 1 - Teléfono único
             Profesor profesor1 = new Profesor();
             profesor1.setPrimerNombre("Laura");
             profesor1.setSegundoNombre("Patricia");
@@ -697,7 +754,7 @@ public class MainTest {
             profesor1.setEdad(45);
             profesor1.setNuipUsuario("5000000001");
             profesor1.setCorreoElectronico("laura.sanchez@colegio.edu");
-            profesor1.setTelefono("3156789012");
+            profesor1.setTelefono("3156789013");
             
             TokenUsuario tokenProfesor1 = TokenUsuario.generarTokenDesdeUsuario(
                 profesor1.getPrimerNombre(),
@@ -722,7 +779,7 @@ public class MainTest {
             profesor2.setEdad(42);
             profesor2.setNuipUsuario("5000000002");
             profesor2.setCorreoElectronico("carlos.mendoza@colegio.edu");
-            profesor2.setTelefono("3167890123");
+            profesor2.setTelefono("5000000002");
             
             TokenUsuario tokenProfesor2 = TokenUsuario.generarTokenDesdeUsuario(
                 profesor2.getPrimerNombre(),
@@ -747,7 +804,7 @@ public class MainTest {
             profesor3.setEdad(38);
             profesor3.setNuipUsuario("5000000003");
             profesor3.setCorreoElectronico("ana.gomez@colegio.edu");
-            profesor3.setTelefono("3178901234");
+            profesor3.setTelefono("5000000003");
             
             TokenUsuario tokenProfesor3 = TokenUsuario.generarTokenDesdeUsuario(
                 profesor3.getPrimerNombre(),
@@ -772,7 +829,7 @@ public class MainTest {
             directivo.setEdad(50);
             directivo.setNuipUsuario("6000000001");
             directivo.setCorreoElectronico("roberto.jimenez@colegio.edu");
-            directivo.setTelefono("3189012345");
+            directivo.setTelefono("6000000001");
             
             TokenUsuario tokenDirectivo = TokenUsuario.generarTokenDesdeUsuario(
                 directivo.getPrimerNombre(),
@@ -804,7 +861,7 @@ public class MainTest {
             long countUsuarios = em.createQuery("SELECT COUNT(u) FROM Usuario u", Long.class).getSingleResult();
             long countAcudientes = em.createQuery("SELECT COUNT(a) FROM Acudiente a", Long.class).getSingleResult();
             long countEstudiantes = em.createQuery("SELECT COUNT(e) FROM Estudiante e", Long.class).getSingleResult();
-            long countGrupos = em.createQuery("SELECT COUNT(g) FROM Grupo g", Long.class).getSingleResult();
+            long countGrupos = em.createQuery("SELECT COUNT(g) FROM grupo g", Long.class).getSingleResult();
             long countPreinscripciones = em.createQuery("SELECT COUNT(p) FROM Preinscripcion p", Long.class).getSingleResult();
             long countRoles = em.createQuery("SELECT COUNT(r) FROM Rol r", Long.class).getSingleResult();
             long countPermisos = em.createQuery("SELECT COUNT(p) FROM Permiso p", Long.class).getSingleResult();
@@ -817,7 +874,7 @@ public class MainTest {
             System.out.println("Preinscripciones: " + countPreinscripciones);
             System.out.println("Profesores: " + countProfesores);
             System.out.println("Tokens de acceso: " + 
-                em.createQuery("SELECT COUNT(t) FROM TokenUsuario t", Long.class).getSingleResult());
+                em.createQuery("SELECT COUNT(t) FROM token_usuario t", Long.class).getSingleResult());
             System.out.println("Roles: " + countRoles);
             System.out.println("Permisos: " + countPermisos);
             
@@ -838,9 +895,33 @@ public class MainTest {
                 .getSingleResult();
             System.out.println("  • Con grupo asignado: " + conGrupo);
             
+            // Mostrar ACUDIENTES por estado (¡IMPORTANTE!)
+            long acudientesPendientes = em.createQuery("SELECT COUNT(a) FROM Acudiente a WHERE a.estadoAprobacion = :estado", Long.class)
+                .setParameter("estado", Estado.Pendiente)
+                .getSingleResult();
+            long acudientesAprobados = em.createQuery("SELECT COUNT(a) FROM Acudiente a WHERE a.estadoAprobacion = :estado", Long.class)
+                .setParameter("estado", Estado.Aprobada)
+                .getSingleResult();
+            
+            System.out.println("\n¡ACUDIENTES PARA ADMINISTRAR!:");
+            System.out.println("  • Pendientes: " + acudientesPendientes + " (para administrar por el directivo)");
+            System.out.println("  • Aprobados: " + acudientesAprobados);
+            
+            // Mostrar PREINSCRIPCIONES por estado
+            long preinscripcionesPendientes = em.createQuery("SELECT COUNT(p) FROM Preinscripcion p WHERE p.estado = :estado", Long.class)
+                .setParameter("estado", Estado.Pendiente)
+                .getSingleResult();
+            long preinscripcionesAprobadas = em.createQuery("SELECT COUNT(p) FROM Preinscripcion p WHERE p.estado = :estado", Long.class)
+                .setParameter("estado", Estado.Aprobada)
+                .getSingleResult();
+            
+            System.out.println("\nPreinscripciones por estado:");
+            System.out.println("  • Pendientes: " + preinscripcionesPendientes + " (para administrar por el directivo)");
+            System.out.println("  • Aprobadas: " + preinscripcionesAprobadas);
+            
             // Mostrar grupos con información detallada
             System.out.println("\nGrupos creados:");
-            List<Grupo> grupos = em.createQuery("SELECT g FROM Grupo g ORDER BY g.nombreGrupo", Grupo.class).getResultList();
+            List<Grupo> grupos = em.createQuery("SELECT g FROM grupo g ORDER BY g.nombreGrupo", Grupo.class).getResultList();
             for (Grupo grupo : grupos) {
                 String gradoNombre = grupo.getGrado() != null ? grupo.getGrado().getNombreGrado() : "N/A";
                 System.out.println("  • " + grupo.getNombreGrupo() + 
@@ -855,6 +936,23 @@ public class MainTest {
             for (Profesor profesor : profesores) {
                 System.out.println("  • " + profesor.obtenerNombreCompleto() + 
                     " (Usuario: " + (profesor.getTokenAccess() != null ? profesor.getTokenAccess().getNombreUsuario() : "Sin token") + ")");
+            }
+            
+            // Mostrar algunos acudientes pendientes como ejemplo
+            System.out.println("\nAlgunos acudientes pendientes (para administrar):");
+            List<Acudiente> acudientesPendientesList = em.createQuery(
+                "SELECT a FROM Acudiente a WHERE a.estadoAprobacion = :estado", Acudiente.class)
+                .setParameter("estado", Estado.Pendiente)
+                .setMaxResults(5)
+                .getResultList();
+            
+            for (Acudiente acudiente : acudientesPendientesList) {
+                System.out.println("  • " + acudiente.obtenerNombreCompleto() + 
+                    " (Tel: " + acudiente.getTelefono() + ", Email: " + acudiente.getCorreoElectronico() + ")");
+            }
+            
+            if (acudientesPendientes > 5) {
+                System.out.println("  • ... y otros " + (acudientesPendientes - 5) + " acudientes más");
             }
             
         } catch (Exception e) {
@@ -896,7 +994,7 @@ public class MainTest {
             
             // 4. Probar lógica de grupo
             System.out.println("\n4. Probando lógica de grupos:");
-            List<Grupo> grupos = em.createQuery("SELECT g FROM Grupo g ORDER BY g.nombreGrupo", Grupo.class).getResultList();
+            List<Grupo> grupos = em.createQuery("SELECT g FROM grupo g ORDER BY g.nombreGrupo", Grupo.class).getResultList();
             for (Grupo grupo : grupos) {
                 System.out.println("   • " + grupo.getNombreGrupo() + ":");
                 System.out.println("     - Estudiantes: " + grupo.getCantidadEstudiantes());
@@ -916,7 +1014,7 @@ public class MainTest {
             
             // 6. Probar token de usuario
             System.out.println("\n6. Probando tokens de usuario:");
-            TokenUsuario token = em.createQuery("SELECT t FROM TokenUsuario t", TokenUsuario.class)
+            TokenUsuario token = em.createQuery("SELECT t FROM token_usuario t", TokenUsuario.class)
                 .setMaxResults(1)
                 .getSingleResult();
             System.out.println("   • Usuario generado: " + token.getNombreUsuario());

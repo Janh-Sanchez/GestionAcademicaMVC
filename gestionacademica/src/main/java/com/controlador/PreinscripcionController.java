@@ -131,7 +131,6 @@ public class PreinscripcionController extends JFrame{
                 );
             }
             
-            // 🔴 VERIFICAR DUPLICADO DE ACUDIENTE DENTRO DE TRANSACCIÓN
             if (usuarioRepositorio.existePorNuip(datosAcudiente.nuip)) {
                 transaction.rollback();
                 return ResultadoOperacion.errorValidacion("nuip",
@@ -162,7 +161,6 @@ public class PreinscripcionController extends JFrame{
                     );
                 }
                 
-                // 🔴 VERIFICAR DUPLICADO DE ESTUDIANTE DENTRO DE TRANSACCIÓN
                 if (estudianteRepositorio.existePorNuip(datosEst.nuip)) {
                     transaction.rollback();
                     return ResultadoOperacion.errorValidacion("nuip",
