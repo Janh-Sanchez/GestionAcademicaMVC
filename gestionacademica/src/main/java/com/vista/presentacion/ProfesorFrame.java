@@ -9,6 +9,7 @@ import com.aplicacion.JPAUtil;
 import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Profesor;
 import com.vista.presentacion.observador.SeleccionarEstudianteObservadorPanel;
+import com.vista.presentacion.grupo.ConsultarGrupoProfesorPanel;
 
 public class ProfesorFrame extends JFrame {
     private Profesor profesor;
@@ -163,7 +164,8 @@ public class ProfesorFrame extends JFrame {
     }
 
     private void administrarGrupos() {
-        mostrarMensajeDesarrollo("Administrar Grupos");
+        ConsultarGrupoProfesorPanel consultarGruposProfesorPanel = new ConsultarGrupoProfesorPanel(profesor);
+        consultarGruposProfesorPanel.setVisible(true);
     }
 
     private void administrarHojaVida() {

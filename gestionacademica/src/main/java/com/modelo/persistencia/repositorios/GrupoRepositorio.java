@@ -75,7 +75,6 @@ public class GrupoRepositorio extends RepositorioGenerico<Grupo> {
      * Busca todos los grupos ordenados por grado y nombre
      * Incluye información del grado y cantidad de estudiantes
      */
-
     public List<Grupo> buscarTodosOrdenadosConInfo() {
         String jpql = "SELECT DISTINCT g FROM grupo g " +
                     "LEFT JOIN FETCH g.grado grado " +
@@ -115,15 +114,15 @@ public class GrupoRepositorio extends RepositorioGenerico<Grupo> {
     }
 
     public List<Grupo> buscarGruposEnFormacionPorGrado(Integer idGrado) {
-    String jpql = "SELECT g FROM grupo g " +
-                 "WHERE g.grado.idGrado = :idGrado " +
-                 "AND g.estado = false " +
-                 "AND SIZE(g.estudiantes) < 5 " +
-                 "ORDER BY SIZE(g.estudiantes) DESC";
-    
-    return entityManager.createQuery(jpql, Grupo.class)
-        .setParameter("idGrado", idGrado)
-        .getResultList();
+        String jpql = "SELECT g FROM grupo g " +
+                     "WHERE g.grado.idGrado = :idGrado " +
+                     "AND g.estado = false " +
+                     "AND SIZE(g.estudiantes) < 5 " +
+                     "ORDER BY SIZE(g.estudiantes) DESC";
+        
+        return entityManager.createQuery(jpql, Grupo.class)
+            .setParameter("idGrado", idGrado)
+            .getResultList();
     }
 
     /**
@@ -188,19 +187,33 @@ public class GrupoRepositorio extends RepositorioGenerico<Grupo> {
     /**
      * Busca todos los grupos listos (activos con >= 5 estudiantes) con profesor asignado
      * Ordenados por grado y nombre
+     * OPTIMIZADO: Usa una sola query con todos los FETCH necesarios
      */
     public List<Grupo> buscarGruposListosConProfesor() {
         String jpql = "SELECT DISTINCT g FROM grupo g " +
                     "LEFT JOIN FETCH g.grado grado " +
                     "LEFT JOIN FETCH g.profesor profesor " +
-                    "LEFT JOIN FETCH g.estudiantes " +
-                    "WHERE g.estado = true " +  // Grupo activo
-                    "AND g.profesor IS NOT NULL " +  // Tiene profesor asignado
-                    "AND SIZE(g.estudiantes) >= 5 " +  // Tiene al menos 5 estudiantes
+                    "WHERE g.estado = true " +
+                    "AND g.profesor IS NOT NULL " +
+                    "AND SIZE(g.estudiantes) >= 5 " +
                     "ORDER BY grado.nombreGrado, g.nombreGrupo";
         
-        return entityManager.createQuery(jpql, Grupo.class)
+        List<Grupo> grupos = entityManager.createQuery(jpql, Grupo.class)
             .setHint("org.hibernate.cacheMode", "IGNORE")
             .getResultList();
+        
+        // Segunda query para cargar estudiantes solo de los grupos que pasaron el filtro
+        if (!grupos.isEmpty()) {
+            String jpqlEstudiantes = "SELECT DISTINCT g FROM grupo g " +
+                                    "LEFT JOIN FETCH g.estudiantes " +
+                                    "WHERE g IN :grupos";
+            
+            entityManager.createQuery(jpqlEstudiantes, Grupo.class)
+                .setParameter("grupos", grupos)
+                .setHint("org.hibernate.cacheMode", "IGNORE")
+                .getResultList();
+        }
+        
+        return grupos;
     }
 }

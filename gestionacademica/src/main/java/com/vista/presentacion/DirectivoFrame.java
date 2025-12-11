@@ -8,6 +8,7 @@ import javax.swing.*;
 import com.aplicacion.JPAUtil;
 import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Usuario;
+import com.vista.presentacion.grupo.SeleccionarGrupoDirectivoPanel;
 import com.vista.presentacion.observador.ConsultarObservadorDirectivoPanel;
 
 public class DirectivoFrame extends JFrame {
@@ -166,9 +167,12 @@ public class DirectivoFrame extends JFrame {
         listaAspirantesPanel.setVisible(true);
     }
 
+    // En DirectivoFrame.java, reemplaza el método administrarGrupos():
+
     private void administrarGrupos() {
-        AsignarProfesoresPanel asignarProfesoresPanel = new AsignarProfesoresPanel();
-        asignarProfesoresPanel.setVisible(true);
+        // Para el directivo: mostrar panel de selección de grupos
+        SeleccionarGrupoDirectivoPanel panelSeleccion = new SeleccionarGrupoDirectivoPanel();
+        panelSeleccion.setVisible(true);
     }
 
     private void administrarHojaVida() {
