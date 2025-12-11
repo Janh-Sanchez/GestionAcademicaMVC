@@ -8,31 +8,22 @@ import jakarta.persistence.EntityTransaction;
 
 import java.util.Optional;
 
-/**
- * Controlador para la gestión de usuarios (CU 2.1, 2.2, 2.4)
- * Coordina entre la Vista y el Modelo según patrón MVC
- */
 public class GestionUsuariosController {
-    private final RepositorioGenerico<Usuario> repoUsuario;
-    private final RepositorioGenerico<TokenUsuario> repoToken;
     private final UsuarioRepositorio usuarioRepositorio;
     private final RolRepositorio rolRepositorio;
     private final EntityManager entityManager;
     
     public GestionUsuariosController(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.repoUsuario = new RepositorioGenerico<>(entityManager, Usuario.class);
-        this.repoToken = new RepositorioGenerico<>(entityManager, TokenUsuario.class);
         this.usuarioRepositorio = new UsuarioRepositorio(entityManager);
         this.rolRepositorio = new RolRepositorio(entityManager);
     }
     
     /**
-     * CU 2.2 - Crear usuario
-     * Valida y registra un nuevo usuario en el sistema
+     * CU 2.2 - Crear usuario SIMPLIFICADO
+     * Ahora el dominio maneja su propia creación
      */
     public ResultadoOperacion crearUsuario(UsuarioDTO datos) {
-        // 1. Validación básica de entrada
         if (datos == null) {
             return ResultadoOperacion.error("Los datos del usuario son obligatorios");
         }
@@ -42,51 +33,38 @@ public class GestionUsuariosController {
         try {
             transaction.begin();
             
-            // 2. Crear instancia del usuario según tipo
-            Usuario usuario = construirUsuarioSegunTipo(datos);
+            // 1. Buscar rol (validación temprana)
+            Optional<Rol> rolOpt = rolRepositorio.buscarPorNombreRol(datos.nombreRol);
+            if (rolOpt.isEmpty()) {
+                return ResultadoOperacion.errorValidacion("rol", 
+                    "El rol especificado no existe");
+            }
             
-            // 3. Validar datos básicos (delegado al modelo)
-            ResultadoValidacionDominio validacion = usuario.validarDatosBasicos();
-            if (!validacion.isValido()) {
-                transaction.rollback();
+            Rol rol = rolOpt.get();
+            
+            // 2. Crear usuario del tipo correcto (el dominio decide el tipo)
+            Usuario usuario = crearInstanciaSegunRol(datos);
+            
+            // 3. Validar duplicados ANTES de intentar crear
+            ResultadoOperacion validacionDuplicados = validarDuplicados(datos);
+            if (!validacionDuplicados.isExitoso()) {
+                return validacionDuplicados;
+            }
+            
+            // 4. DELEGAR AL DOMINIO la creación completa
+            ResultadoValidacionDominio creacion = usuario.crearUsuarioCompleto(rol);
+            if (!creacion.isValido()) {
                 return ResultadoOperacion.errorValidacion(
-                    validacion.getCampoInvalido(),
-                    validacion.getMensajeError()
+                    creacion.getCampoInvalido(),
+                    creacion.getMensajeError()
                 );
             }
             
-            // 4. Verificar duplicados (usando repositorios)
-            if (usuarioRepositorio.existePorNuip(datos.nuip)) {
-                transaction.rollback();
-                return ResultadoOperacion.errorValidacion("nuip",
-                    "Ya existe un usuario registrado con este NUIP");
-            }
+            // 5. Guardar (el token ya está generado y asignado por el dominio)
+            usuarioRepositorio.guardar(usuario);
             
-            if (usuarioRepositorio.existePorCorreo(datos.correoElectronico)) {
-                transaction.rollback();
-                return ResultadoOperacion.errorValidacion("correoElectronico",
-                    "Ya existe un usuario registrado con este correo electrónico");
-            }
-            
-            if (usuarioRepositorio.existePorTelefono(datos.telefono)) {
-                transaction.rollback();
-                return ResultadoOperacion.errorValidacion("telefono",
-                    "Ya existe un usuario registrado con este teléfono");
-            }
-            
-            // 5. Crear token de acceso automáticamente
-            if (datos.nombreRol != null && !datos.nombreRol.trim().isEmpty()) {
-                ResultadoOperacion resultadoToken = crearTokenUsuario(datos);
-                if (!resultadoToken.isExitoso()) {
-                    transaction.rollback();
-                    return resultadoToken;
-                }
-                TokenUsuario token = (TokenUsuario) resultadoToken.getDatos();
-                usuario.setTokenAccess(token);
-            }
-            
-            // 6. Guardar usuario
-            repoUsuario.guardar(usuario);
+            // 6. Refrescar para obtener IDs generados
+            entityManager.flush();
             entityManager.refresh(usuario);
             
             transaction.commit();
@@ -106,6 +84,115 @@ public class GestionUsuariosController {
         }
     }
     
+    /**
+     * Método auxiliar para crear instancia según rol
+     */
+    private Usuario crearInstanciaSegunRol(UsuarioDTO datos) {
+        Usuario usuario;
+        
+        switch (datos.nombreRol.toLowerCase()) {
+            case "profesor":
+                usuario = new Profesor();
+                break;
+            case "directivo":
+                usuario = new Directivo();
+                break;
+            default:
+                throw new IllegalArgumentException(
+                    "Rol no soportado: " + datos.nombreRol);
+        }
+        
+        // Mapear datos comunes
+        usuario.setNuipUsuario(datos.nuip);
+        usuario.setPrimerNombre(datos.primerNombre);
+        usuario.setSegundoNombre(datos.segundoNombre);
+        usuario.setPrimerApellido(datos.primerApellido);
+        usuario.setSegundoApellido(datos.segundoApellido);
+        usuario.setEdad(datos.edad);
+        usuario.setCorreoElectronico(datos.correoElectronico);
+        usuario.setTelefono(datos.telefono);
+        
+        return usuario;
+    }
+    
+    /**
+     * Validación de duplicados separada
+     */
+    private ResultadoOperacion validarDuplicados(UsuarioDTO datos) {
+        try {
+            if (usuarioRepositorio.existePorNuip(datos.nuip)) {
+                return ResultadoOperacion.errorValidacion("nuip",
+                    "Ya existe un usuario registrado con este NUIP");
+            }
+            
+            if (usuarioRepositorio.existePorCorreo(datos.correoElectronico)) {
+                return ResultadoOperacion.errorValidacion("correoElectronico",
+                    "Ya existe un usuario registrado con este correo electrónico");
+            }
+            
+            if (usuarioRepositorio.existePorTelefono(datos.telefono)) {
+                return ResultadoOperacion.errorValidacion("telefono",
+                    "Ya existe un usuario registrado con este teléfono");
+            }
+            
+            return ResultadoOperacion.exito("Sin duplicados");
+            
+        } catch (Exception e) {
+            return ResultadoOperacion.error(
+                "Error al verificar duplicados: " + e.getMessage()
+            );
+        }
+    }
+    
+    /**
+     * Validación previa (para UI)
+     */
+    public ResultadoOperacion validarDatosUsuario(UsuarioDTO datos) {
+        // Validación básica de estructura
+        if (datos.nombreRol == null || datos.nombreRol.trim().isEmpty()) {
+            return ResultadoOperacion.errorValidacion("rol", "El rol es obligatorio");
+        }
+        
+        // Validar rol existe
+        Optional<Rol> rolOpt = rolRepositorio.buscarPorNombreRol(datos.nombreRol);
+        if (rolOpt.isEmpty()) {
+            return ResultadoOperacion.errorValidacion("rol", "El rol especificado no existe");
+        }
+        
+        // Crear instancia temporal para validación del dominio
+        Usuario usuario = crearInstanciaSegunRol(datos);
+        
+        // Delegar validación al dominio
+        ResultadoValidacionDominio validacion = usuario.validarDatosBasicos();
+        
+        if (!validacion.isValido()) {
+            return ResultadoOperacion.errorValidacion(
+                validacion.getCampoInvalido(),
+                validacion.getMensajeError()
+            );
+        }
+        
+        // Validar duplicados (sin guardar)
+        return validarDuplicados(datos);
+    }
+
+    /**
+     * Obtiene los roles disponibles para asignar
+     */
+    public ResultadoOperacion obtenerRolesDisponibles() {
+        try {
+            var roles = rolRepositorio.buscarTodos();
+            return ResultadoOperacion.exitoConDatos(
+                "Roles obtenidos correctamente",
+                roles
+            );
+        } catch (Exception e) {
+            return ResultadoOperacion.error(
+                "Error al obtener los roles: " + e.getMessage()
+            );
+        }
+    }
+
     /**
      * CU 2.4 - Consultar mi información
      * Obtiene la información completa del usuario autenticado
@@ -132,127 +219,6 @@ public class GestionUsuariosController {
         } catch (Exception e) {
             return ResultadoOperacion.error(
                 "Error al consultar la información: " + e.getMessage()
-            );
-        }
-    }
-    
-    /**
-     * Validación previa de datos de usuario
-     * Permite validar antes de intentar guardar
-     */
-    public ResultadoOperacion validarDatosUsuario(UsuarioDTO datos) {
-        // Crear instancia temporal para validar
-        Usuario usuario = construirUsuarioSegunTipo(datos);
-        
-        // Delegar validación al modelo
-        ResultadoValidacionDominio validacion = usuario.validarDatosBasicos();
-        
-        if (!validacion.isValido()) {
-            return ResultadoOperacion.errorValidacion(
-                validacion.getCampoInvalido(),
-                validacion.getMensajeError()
-            );
-        }
-        
-        // Verificar duplicados (sin transacción)
-        try {
-            if (usuarioRepositorio.existePorNuip(datos.nuip)) {
-                return ResultadoOperacion.errorValidacion("nuip",
-                    "Ya existe un usuario registrado con este NUIP");
-            }
-            
-            if (usuarioRepositorio.existePorCorreo(datos.correoElectronico)) {
-                return ResultadoOperacion.errorValidacion("correoElectronico",
-                    "Ya existe un usuario registrado con este correo electrónico");
-            }
-            
-            if (usuarioRepositorio.existePorTelefono(datos.telefono)) {
-                return ResultadoOperacion.errorValidacion("telefono",
-                    "Ya existe un usuario registrado con este teléfono");
-            }
-        } catch (Exception e) {
-            return ResultadoOperacion.error(
-                "Error al verificar duplicados: " + e.getMessage()
-            );
-        }
-        
-        return ResultadoOperacion.exito("Datos válidos");
-    }
-    
-    /**
-     * Crea un token de usuario con validaciones
-     */
-    private ResultadoOperacion crearTokenUsuario(UsuarioDTO datos) {        
-        // Buscar el rol
-        Optional<Rol> rolOpt = rolRepositorio.buscarPorNombreRol(datos.nombreRol);
-        if (rolOpt.isEmpty()) {
-            return ResultadoOperacion.errorValidacion("rol",
-                "El rol especificado no existe");
-        }
-        
-        Rol rol = rolOpt.get();
-        
-        // Validar que el rol sea válido
-        if (!rol.esValido()) {
-            return ResultadoOperacion.error(
-                "El rol seleccionado no es válido o no tiene permisos asignados");
-        }
-        
-        // Crear token NUEVO cada vez
-        TokenUsuario token = TokenUsuario.generarTokenDesdeUsuario(
-            datos.primerNombre,
-            datos.segundoNombre, 
-            datos.primerApellido, 
-            datos.segundoApellido, 
-            rol
-        );
-        
-        repoToken.guardar(token);
-        
-        return ResultadoOperacion.exitoConDatos("Token creado", token);
-    }
-    
-    private Usuario construirUsuarioSegunTipo(UsuarioDTO datos) {
-        Usuario usuario;
-        
-        switch (datos.nombreRol.toLowerCase()) {
-            case "directivo":
-                usuario = new Directivo();
-                break;
-            case "profesor":
-                usuario = new Profesor();
-                break;
-            default:
-                throw new IllegalArgumentException(
-                    "Tipo de usuario no válido. Solo se permiten: Profesor, Directivo");
-        }
-        
-        // Mapear datos comunes
-        usuario.setNuipUsuario(datos.nuip);
-        usuario.setPrimerNombre(datos.primerNombre);
-        usuario.setSegundoNombre(datos.segundoNombre);
-        usuario.setPrimerApellido(datos.primerApellido);
-        usuario.setSegundoApellido(datos.segundoApellido);
-        usuario.setEdad(datos.edad);
-        usuario.setCorreoElectronico(datos.correoElectronico);
-        usuario.setTelefono(datos.telefono);
-        
-        return usuario;
-    }
-    
-    /**
-     * Obtiene los roles disponibles para asignar
-     */
-    public ResultadoOperacion obtenerRolesDisponibles() {
-        try {
-            var roles = rolRepositorio.buscarTodos();
-            return ResultadoOperacion.exitoConDatos(
-                "Roles obtenidos correctamente",
-                roles
-            );
-        } catch (Exception e) {
-            return ResultadoOperacion.error(
-                "Error al obtener los roles: " + e.getMessage()
             );
         }
     }

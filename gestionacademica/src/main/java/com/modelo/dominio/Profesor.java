@@ -66,6 +66,7 @@ public class Profesor extends Usuario{
 
     /**
      * Remueve la asignación del grupo actual
+     * Creo que esto se podria eliminar
      */
     public ResultadoOperacion removerGrupo(){
         if (!tieneGrupoAsignado()) {
@@ -77,6 +78,12 @@ public class Profesor extends Usuario{
         grupoAnterior.setProfesor(null);
         
         return ResultadoOperacion.exito("Grupo removido correctamente");
+    }
+
+    @Override
+    public boolean requiereTokenAutomatico() {
+        // Profesores SI reciben token inmediatamente al crearse
+        return true;
     }
 
     // ============================================

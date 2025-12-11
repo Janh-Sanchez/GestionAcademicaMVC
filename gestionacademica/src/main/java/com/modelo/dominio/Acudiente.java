@@ -143,6 +143,23 @@ public class Acudiente extends Usuario {
         return Math.max(0, MAX_ESTUDIANTES - estudiantes.size());
     }
 
+    @Override
+    public boolean requiereTokenAutomatico() {
+        // Acudientes SOLO reciben token cuando son APROBADOS
+        // No al crearse por preinscripción
+        return this.estadoAprobacion == Estado.Aprobada;
+    }
+        
+    /**
+     * Método específico para cuando un acudiente es aprobado
+     */
+    public ResultadoOperacion generarTokenSiAprobado(Rol rolAcudiente) {
+        if (this.estadoAprobacion == Estado.Aprobada && this.tokenAccess == null) {
+            return this.generarTokenAutomatico(rolAcudiente);
+        }
+        return ResultadoOperacion.exito("No se requiere token en este estado");
+    }
+
     public Estado getEstadoAprobacion() {
         return estadoAprobacion;
     }

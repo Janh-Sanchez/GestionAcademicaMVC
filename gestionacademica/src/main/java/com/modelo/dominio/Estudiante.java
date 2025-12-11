@@ -225,6 +225,18 @@ public class Estudiante {
         return ResultadoValidacionDominio.exito();
     }
 
+    public String obtenerNombreCompleto() {
+        StringBuilder nombre = new StringBuilder(primerNombre);
+        if (segundoNombre != null && !segundoNombre.isEmpty()) {
+            nombre.append(" ").append(segundoNombre);
+        }
+        nombre.append(" ").append(primerApellido);
+        if (segundoApellido != null && !segundoApellido.isEmpty()) {
+            nombre.append(" ").append(segundoApellido);
+        }
+        return nombre.toString();
+    }
+
 
     public void agregarBoletin(Boletin boletin) {
         boletines.add(boletin);

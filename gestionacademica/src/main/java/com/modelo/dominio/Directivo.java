@@ -14,6 +14,10 @@ public class Directivo extends Usuario{
     }
 
     public Directivo() {
-        //TODO Auto-generated constructor stub
+    }
+
+    @Override
+    public boolean requiereTokenAutomatico() {
+        return true;
     }
 }

@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 
 @Entity(name = "usuario")
 @Inheritance(strategy = InheritanceType.JOINED)
-public class Usuario {
+public abstract class Usuario {
     
     private static final Pattern PATTERN_NOMBRE = 
         Pattern.compile("^[A-Za-zÁÉÍÓÚáéíóúñÑ]+$");
@@ -49,7 +49,7 @@ public class Usuario {
 
     @OneToOne(cascade = CascadeType.ALL, optional = true)
     @JoinColumn(name = "token_access", referencedColumnName = "id_token", nullable = true)
-    private TokenUsuario tokenAccess;
+    protected TokenUsuario tokenAccess;
     
     public Usuario() {
     }
@@ -175,6 +175,66 @@ public class Usuario {
         resultado = validarEdad(this.edad);
         if (!resultado.isValido()){
             return resultado;
+        }
+        
+        return ResultadoValidacionDominio.exito();
+    }
+
+    /**
+     * Genera y asigna token usando la lógica del dominio TokenUsuario
+     */
+    public ResultadoOperacion generarTokenAutomatico(Rol rol) {
+        // Validar si ya tiene token
+        if (this.tokenAccess != null) {
+            return ResultadoOperacion.error("El usuario ya tiene token asignado");
+        }
+        
+        // Validar rol
+        if (rol == null) {
+            return ResultadoOperacion.error("El rol es obligatorio para generar token");
+        }
+        
+        if (!rol.esValido()) {
+            return ResultadoOperacion.error("El rol no es válido o no tiene permisos asignados");
+        }
+        
+        try {
+            // Usar la fábrica de TokenUsuario (lógica de dominio)
+            TokenUsuario token = TokenUsuario.generarTokenDesdeUsuario(
+                this.primerNombre,
+                this.segundoNombre,
+                this.primerApellido,
+                this.segundoApellido,
+                rol
+            );
+            
+            this.tokenAccess = token;
+            return ResultadoOperacion.exitoConDatos("Token generado exitosamente", token);
+            
+        } catch (IllegalArgumentException e) {
+            return ResultadoOperacion.error("Datos insuficientes para generar token: " + e.getMessage());
+        }
+    }
+
+    public abstract boolean requiereTokenAutomatico();
+
+    
+    /**
+     * Método unificado de creación con validaciones
+     */
+    public ResultadoValidacionDominio crearUsuarioCompleto(Rol rol) {
+        // 1. Validar datos básicos
+        ResultadoValidacionDominio validacion = this.validarDatosBasicos();
+        if (!validacion.isValido()) {
+            return validacion;
+        }
+        
+        // 2. Generar token si es requerido
+        if (this.requiereTokenAutomatico()) {
+            ResultadoOperacion resultadoToken = this.generarTokenAutomatico(rol);
+            if (!resultadoToken.isExitoso()) {
+                return ResultadoValidacionDominio.error("token", resultadoToken.getMensaje());
+            }
         }
         
         return ResultadoValidacionDominio.exito();
