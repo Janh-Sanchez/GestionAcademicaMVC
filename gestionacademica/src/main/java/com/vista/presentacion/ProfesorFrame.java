@@ -10,6 +10,7 @@ import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Profesor;
 import com.vista.presentacion.observador.SeleccionarEstudianteObservadorPanel;
 import com.vista.presentacion.grupo.ConsultarGrupoProfesorPanel;
+import com.vista.presentacion.hojavida.SeleccionarEstudianteHojaVidaPanel;
 
 public class ProfesorFrame extends JFrame {
     private Profesor profesor;
@@ -169,7 +170,8 @@ public class ProfesorFrame extends JFrame {
     }
 
     private void administrarHojaVida() {
-        mostrarMensajeDesarrollo("Administrar Hoja de Vida");
+        SeleccionarEstudianteHojaVidaPanel panel = new SeleccionarEstudianteHojaVidaPanel(profesor);
+        panel.setVisible(true);
     }
 
     private void consultarObservador() {

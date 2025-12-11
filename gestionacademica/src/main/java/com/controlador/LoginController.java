@@ -1,147 +1,183 @@
 package com.controlador;
 
-import java.util.Optional;
-
-import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 
 import com.aplicacion.JPAUtil;
-import com.modelo.dominio.Acudiente;
-import com.modelo.dominio.Administrador;
-import com.modelo.dominio.Directivo;
-import com.modelo.dominio.Profesor;
-import com.modelo.dominio.ResultadoOperacion;
-import com.modelo.dominio.TokenUsuario;
-import com.modelo.dominio.Usuario;
+import com.modelo.dominio.*;
 import com.modelo.persistencia.repositorios.TokenUsuarioRepositorio;
 import com.modelo.persistencia.repositorios.UsuarioRepositorio;
-import com.vista.presentacion.AcudienteFrame;
-import com.vista.presentacion.AdministradorFrame;
-import com.vista.presentacion.DirectivoFrame;
-import com.vista.presentacion.PreinscripcionFrame;
-import com.vista.presentacion.ProfesorFrame;
+import com.vista.presentacion.*;
+import com.vista.presentacion.hojavida.DiligenciarHojaVidaDialog;
 
+import jakarta.persistence.EntityManager;
+
+/**
+ * Controlador para el login
+ * Responsabilidad: Gestionar la autenticación y navegación según rol
+ */
 public class LoginController {
-    private UsuarioRepositorio usuarioRepo;
-    private TokenUsuarioRepositorio tokenRepo;
     private int intentosFallidos = 0;
     private static final int MAX_INTENTOS = 3;
-    
+    private final EntityManager entityManager;
+    private final TokenUsuarioRepositorio tokenUsuarioRepositorio;
+    private final UsuarioRepositorio usuarioRepositorio;
+
     public LoginController() {
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        this.usuarioRepo = new UsuarioRepositorio(em);
-        this.tokenRepo = new TokenUsuarioRepositorio(em);
+        this.entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
+        this.tokenUsuarioRepositorio = new TokenUsuarioRepositorio(entityManager);
+        this.usuarioRepositorio = new UsuarioRepositorio(entityManager);
     }
 
-    public ResultadoOperacion autenticarConValidacion(String usuario, String contrasena) {
-        // Primero validar los datos básicos
-        if (usuario == null || usuario.trim().isEmpty()) {
-            return ResultadoOperacion.errorValidacion(
-                "nombreUsuario",
-                "El nombre de usuario es obligatorio"
-            );
+    /**
+     * Autentica un usuario con validaciones previas
+     */
+    public ResultadoOperacion autenticarConValidacion(String nombreUsuario, String contrasena) {
+        // Validar campos vacíos
+        if (nombreUsuario == null || nombreUsuario.trim().isEmpty()) {
+            return ResultadoOperacion.errorValidacion("nombreUsuario", "El nombre de usuario es obligatorio");
         }
         
         if (contrasena == null || contrasena.isEmpty()) {
-            return ResultadoOperacion.errorValidacion(
-                "contrasena",
-                "La contraseña es obligatoria"
-            );
+            return ResultadoOperacion.errorValidacion("contrasena", "La contraseña es obligatoria");
         }
         
-        // Luego autenticar
-        try {
-            Usuario usuarioAutenticado = autenticar(usuario.trim(), contrasena);
-            if (usuarioAutenticado != null) {
-                return ResultadoOperacion.exitoConDatos("Autenticación exitosa", usuarioAutenticado);
+        // Verificar si está bloqueado
+        if (estaBloqueado()) {
+            return ResultadoOperacion.error("Cuenta bloqueada por múltiples intentos fallidos");
+        }
+        
+        // Intentar autenticar
+        ResultadoOperacion resultado = autenticar(nombreUsuario, contrasena);
+        
+        if (!resultado.isExitoso()) {
+            intentosFallidos++;
+            
+            if (estaBloqueado()) {
+                return ResultadoOperacion.error("Cuenta bloqueada. Ha excedido el límite de intentos.");
             } else {
-                String mensaje = estaBloqueado()
-                    ? "Inicio de sesión bloqueado, inténtelo nuevamente mas tarde"
-                    : String.format("Credenciales incorrectas. Intentos restantes: %d", getIntentosRestantes());
-                return ResultadoOperacion.error(mensaje);
+                int intentosRestantes = MAX_INTENTOS - intentosFallidos;
+                return ResultadoOperacion.error("Credenciales incorrectas. Intentos restantes: " + intentosRestantes);
             }
-        } catch (IllegalStateException e) {
-            return ResultadoOperacion.error(e.getMessage());
+        }
+        
+        // Login exitoso - resetear intentos
+        intentosFallidos = 0;
+        return resultado;
+    }
+
+    /**
+     * Autentica un usuario en el sistema
+     */
+    private ResultadoOperacion autenticar(String nombreUsuario, String contrasena) {
+        try {
+            // Buscar usuario por nombre
+            var tokenUsuarioOpt = tokenUsuarioRepositorio.buscarPorNombreUsuario(nombreUsuario);
+            
+            if (tokenUsuarioOpt.isEmpty()) {
+                return ResultadoOperacion.error("Usuario no encontrado");
+            }
+
+            Usuario usuario = usuarioRepositorio.buscarPorToken(tokenUsuarioOpt.get().getIdToken()).get();
+            
+            boolean credencialesCorrectas = usuario.getTokenAccess().verificarCredenciales(contrasena);
+            
+            if (!credencialesCorrectas) {
+                return ResultadoOperacion.error("Contraseña incorrecta");
+            }
+            
+            // Autenticación exitosa
+            return ResultadoOperacion.exitoConDatos("Login exitoso", usuario);
+            
         } catch (Exception e) {
             return ResultadoOperacion.error("Error en el sistema: " + e.getMessage());
         }
     }
 
-    public Usuario autenticar(String usuario, String contrasena) {
-        try {
-            // Buscar token en BD
-            Optional<TokenUsuario> tokenOpt = tokenRepo.buscarPorNombreUsuario(usuario);
-            
-            if (tokenOpt.isEmpty()) {
-                intentosFallidos++;
-                return null;
+    /**
+     * Navega a la pantalla correspondiente según el rol del usuario autenticado
+     * IMPORTANTE: Maneja la validación de hojas de vida para acudientes
+     */
+    public void navegarSegunRol(Usuario usuario) {
+        String nombreRol = usuario.getTokenAccess().getRol().getNombre();
+        
+        SwingUtilities.invokeLater(() -> {
+            switch (nombreRol) {
+                case "administrador":
+                    AdministradorFrame administradorFrame = new AdministradorFrame((Administrador) usuario);
+                    administradorFrame.setVisible(true);
+                    break;
+                    
+                case "acudiente":
+                    manejarLoginAcudiente((Acudiente) usuario);
+                    break;
+                    
+                case "profesor":
+                    ProfesorFrame profesorFrame = new ProfesorFrame((Profesor) usuario);
+                    profesorFrame.setVisible(true);
+                    break;
+                    
+                case "directivo":
+                    DirectivoFrame directivoFrame = new DirectivoFrame((Directivo) usuario);
+                    directivoFrame.setVisible(true);
+                    break;
+                    
+                default:
+                    System.err.println("Rol no reconocido: " + nombreRol);
             }
+        });
+    }
+
+    /**
+     * Maneja el login del acudiente verificando si debe completar hojas de vida
+     */
+    private void manejarLoginAcudiente(Acudiente acudiente) {
+        // Verificar si tiene estudiantes y si las hojas de vida están completas
+        var hojaVidaController = new GestionHojaVidaController(entityManager);
+        ResultadoOperacion resultado = hojaVidaController.verificarHojasVidaCompletas(acudiente);
+        
+        if (resultado.isExitoso()) {
+            Boolean todasCompletas = (Boolean) resultado.getDatos();
             
-            TokenUsuario token = tokenOpt.get();
-            
-            // Verificar credenciales
-            if (!token.verificarCredenciales(contrasena)) {
-                intentosFallidos++;
-                return null;
+            if (!todasCompletas) {
+                // Mostrar diálogo OBLIGATORIO de hojas de vida
+                AcudienteFrame frameTemp = new AcudienteFrame(acudiente);
+                
+                DiligenciarHojaVidaDialog dialogo = new DiligenciarHojaVidaDialog(
+                    frameTemp, acudiente, hojaVidaController);
+                dialogo.setVisible(true);
+                
+                // Verificar si completó las hojas de vida
+                if (dialogo.seCompletaronTodasLasHojas()) {
+                    // Permitir acceso al frame
+                    AcudienteFrame acudienteFrame = new AcudienteFrame(acudiente);
+                    acudienteFrame.setVisible(true);
+                } else {
+                    // Volver al login
+                    LoginFrame loginFrame = new LoginFrame();
+                    loginFrame.setVisible(true);
+                }
+                
+                frameTemp.dispose();
+                return;
             }
-            
-            // Buscar usuario por token
-            Optional<Usuario> usuarioOpt = usuarioRepo.buscarPorToken(token.getIdToken());
-            
-            if (usuarioOpt.isEmpty()) {
-                intentosFallidos++;
-                return null;
-            }
-            
-            // Éxito - resetear intentos
-            resetearIntentos();
-            return usuarioOpt.get();
-            
-        } catch (Exception e) {
-            // Error de base de datos
-            throw new RuntimeException("Error al acceder a la base de datos: " + e.getMessage(), e);
         }
+        
+        // Hojas completas o sin estudiantes - acceso normal
+        AcudienteFrame acudienteFrame = new AcudienteFrame(acudiente);
+        acudienteFrame.setVisible(true);
     }
-    
-    public int getIntentosRestantes() {
-        return MAX_INTENTOS - intentosFallidos;
-    }
-    
+
+    /**
+     * Verifica si la cuenta está bloqueada
+     */
     public boolean estaBloqueado() {
         return intentosFallidos >= MAX_INTENTOS;
     }
-    
+
+    /**
+     * Resetea los intentos fallidos (útil para testing)
+     */
     public void resetearIntentos() {
         intentosFallidos = 0;
-    }
-
-    public void navegarSegunRol(Usuario u) {
-        JFrame next = null;
-
-        if (u instanceof Administrador admin) {
-            next = new AdministradorFrame(admin);
-        }
-        else if(u instanceof Profesor p){
-            next = new ProfesorFrame(p);
-        } 
-        else if (u instanceof Directivo d) {
-            next = new DirectivoFrame(d);
-        } 
-        else if (u instanceof Acudiente a) {
-            next = new AcudienteFrame(a);
-        }
-        
-        if (next != null) {
-            next.setVisible(true);
-        } else {
-            throw new IllegalArgumentException("Tipo de usuario no soportado: " + 
-                (u != null ? u.getClass().getSimpleName() : "null"));
-        }
-    }
-
-    public void abrirFormularioPreinscripcion(JFrame padre){
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        PreinscripcionFrame preinscripcionDialog = new PreinscripcionFrame(padre, em);
-        preinscripcionDialog.setModal(false);
-        preinscripcionDialog.mostrarFormulario();
     }
 }

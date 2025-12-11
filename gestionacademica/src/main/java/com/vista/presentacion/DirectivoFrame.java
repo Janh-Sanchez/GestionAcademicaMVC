@@ -9,6 +9,7 @@ import com.aplicacion.JPAUtil;
 import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Usuario;
 import com.vista.presentacion.grupo.SeleccionarGrupoDirectivoPanel;
+import com.vista.presentacion.hojavida.ConsultarHojaVidaDirectivoPanel;
 import com.vista.presentacion.observador.ConsultarObservadorDirectivoPanel;
 
 public class DirectivoFrame extends JFrame {
@@ -176,7 +177,8 @@ public class DirectivoFrame extends JFrame {
     }
 
     private void administrarHojaVida() {
-        mostrarMensajeDesarrollo("Administrar Hoja de Vida");
+        ConsultarHojaVidaDirectivoPanel panel = new ConsultarHojaVidaDirectivoPanel();
+        panel.setVisible(true);
     }
 
     private void consultarObservador() {
