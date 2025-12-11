@@ -1,5 +1,6 @@
 package com.controlador;
 
+import com.modelo.AsignadorGrupos;
 import com.modelo.dominio.*;
 import com.modelo.persistencia.repositorios.*;
 import jakarta.persistence.EntityManager;
@@ -326,9 +327,9 @@ public class GestionAspirantesController {
                 "Error al procesar el rechazo: " + e.getMessage());
         }
     }
-    
+
     /**
-     * Asigna estudiante a un grupo utilizando la lógica de dominio
+     * Asigna estudiante a un grupo usando lógica simple
      */
     private ResultadoOperacion asignarEstudianteAGrupo(Estudiante estudiante) {
         try {
@@ -338,80 +339,52 @@ public class GestionAspirantesController {
             
             Integer idGrado = estudiante.getGradoAspira().getIdGrado();
             
-            // Buscar grupo disponible
-            Grupo grupoDisponible = encontrarGrupoDisponibleParaGrado(idGrado);
+            // 1. Obtener todos los grupos del grado
+            List<Grupo> gruposDelGrado = repoGrupo.buscarPorGrado(idGrado);
             
-            if (grupoDisponible != null && grupoDisponible.agregarEstudiante(estudiante)) {
-                repoGrupo.guardar(grupoDisponible);
-                return ResultadoOperacion.exito("Estudiante asignado a grupo existente");
+            // 2. Encontrar grupo disponible usando la estrategia simple
+            Grupo grupoDisponible = AsignadorGrupos.encontrarGrupoParaEstudiante(gruposDelGrado);
+            
+            if (grupoDisponible != null) {
+                // 3. Asignar estudiante al grupo existente
+                boolean asignado = grupoDisponible.agregarEstudiante(estudiante);
+                if (asignado) {
+                    repoGrupo.guardar(grupoDisponible);
+                    
+                    // Construir mensaje informativo
+                    String mensaje = String.format(
+                        "Estudiante asignado al grupo '%s' (%d/%d estudiantes)",
+                        grupoDisponible.getNombreGrupo(),
+                        grupoDisponible.getCantidadEstudiantes(),
+                        grupoDisponible.getMAXESTUDIANTES()
+                    );
+                    return ResultadoOperacion.exito(mensaje);
+                }
             }
             
-            // Crear nuevo grupo si no hay disponibles
+            // 4. Si no hay grupo disponible o todos están llenos, crear uno nuevo
             Grupo nuevoGrupo = crearNuevoGrupo(idGrado);
+            boolean asignado = nuevoGrupo.agregarEstudiante(estudiante);
             
-            if (nuevoGrupo.agregarEstudiante(estudiante)) {
+            if (asignado) {
                 repoGrupo.guardar(nuevoGrupo);
-                return ResultadoOperacion.exito("Nuevo grupo creado y estudiante asignado");
+                String mensaje = String.format(
+                    "Nuevo grupo '%s' creado y estudiante asignado",
+                    nuevoGrupo.getNombreGrupo()
+                );
+                return ResultadoOperacion.exito(mensaje);
             }
             
             return ResultadoOperacion.error("No se pudo asignar estudiante a ningún grupo");
             
         } catch (Exception e) {
             e.printStackTrace();
-            return ResultadoOperacion.error(
-                "Error al asignar grupo: " + e.getMessage());
+            return ResultadoOperacion.error("Error al asignar grupo: " + e.getMessage());
         }
     }
-
+    
     /**
-     * Método unificado que encuentra el mejor grupo disponible para un grado
-     */
-    private Grupo encontrarGrupoDisponibleParaGrado(Integer idGrado) {
-        List<Grupo> gruposDelGrado = repoGrupo.buscarPorGrado(idGrado);
-        return buscarGrupoDisponible(gruposDelGrado);
-    }
-
-    /**
-     * Busca un grupo disponible usando reglas de negocio del dominio
-     */
-    private Grupo buscarGrupoDisponible(List<Grupo> grupos) {
-        if (grupos == null || grupos.isEmpty()) {
-            return null;
-        }
-        
-        // Optimización: Ordenar grupos inactivos por cantidad de estudiantes (descendente)
-        List<Grupo> gruposInactivos = new ArrayList<>();
-        for (Grupo grupo : grupos) {
-            if (!grupo.isEstado() && !grupo.tieneEstudiantesSuficientes() && grupo.tieneDisponibilidad()) {
-                gruposInactivos.add(grupo);
-            }
-        }
-        
-        if (!gruposInactivos.isEmpty()) {
-            gruposInactivos.sort((g1, g2) -> 
-                Integer.compare(g2.getCantidadEstudiantes(), g1.getCantidadEstudiantes()));
-            return gruposInactivos.get(0);
-        }
-        
-        // Prioridad 2: Grupos activos con disponibilidad
-        List<Grupo> gruposActivos = new ArrayList<>();
-        for (Grupo grupo : grupos) {
-            if (grupo.isEstado() && grupo.tieneDisponibilidad()) {
-                gruposActivos.add(grupo);
-            }
-        }
-        
-        if (!gruposActivos.isEmpty()) {
-            gruposActivos.sort((g1, g2) -> 
-                Integer.compare(g1.getCantidadEstudiantes(), g2.getCantidadEstudiantes()));
-            return gruposActivos.get(0);
-        }
-        
-        return null;
-    }
-
-    /**
-     * Crea un nuevo grupo para un grado específico
+     * Crea un nuevo grupo para un grado (versión simplificada)
      */
     private Grupo crearNuevoGrupo(Integer idGrado) throws Exception {
         Optional<Grado> gradoOpt = repoGrado.buscarPorId(idGrado);
@@ -421,20 +394,20 @@ public class GestionAspirantesController {
         
         Grado grado = gradoOpt.get();
         
+        // Contar grupos existentes para este grado
         Long cantidadGrupos = repoGrupo.contarGruposPorGrado(idGrado);
-        String nombreGrupo = generarNombreGrupo(grado, cantidadGrupos);
         
+        // Generar nombre del nuevo grupo
+        String nombreGrupo = AsignadorGrupos.generarNombreNuevoGrupo(grado, cantidadGrupos);
+        
+        // Crear nuevo grupo
         Grupo nuevoGrupo = new Grupo();
         nuevoGrupo.setNombreGrupo(nombreGrupo);
-        nuevoGrupo.setEstado(false);
+        nuevoGrupo.setEstado(false); // Inactivo hasta tener mínimo
         nuevoGrupo.setGrado(grado);
         nuevoGrupo.setEstudiantes(new HashSet<>());
         
-        return repoGrupo.guardar(nuevoGrupo);
-    }
-    
-    private String generarNombreGrupo(Grado grado, Long cantidadGrupos) {
-        return String.format("%s-%d", grado.getNombreGrado(), cantidadGrupos + 1);
+        return nuevoGrupo;
     }
 
     private AspiranteDTO convertirADTO(Preinscripcion preinscripcion) {
