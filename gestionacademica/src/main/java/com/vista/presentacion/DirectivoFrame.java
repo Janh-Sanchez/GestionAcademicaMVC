@@ -8,7 +8,7 @@ import javax.swing.*;
 import com.aplicacion.JPAUtil;
 import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Usuario;
-import com.vista.presentacion.grupo.SeleccionarGrupoDirectivoPanel;
+import com.vista.presentacion.grupo.MenuGruposDirectivoPanel;
 import com.vista.presentacion.hojavida.ConsultarHojaVidaDirectivoPanel;
 import com.vista.presentacion.observador.ConsultarObservadorDirectivoPanel;
 
@@ -170,10 +170,11 @@ public class DirectivoFrame extends JFrame {
 
     // En DirectivoFrame.java, reemplaza el método administrarGrupos():
 
+    // En DirectivoFrame.java, modificar el método administrarGrupos():
     private void administrarGrupos() {
-        // Para el directivo: mostrar panel de selección de grupos
-        SeleccionarGrupoDirectivoPanel panelSeleccion = new SeleccionarGrupoDirectivoPanel();
-        panelSeleccion.setVisible(true);
+        // Para el directivo: mostrar menú intermedio con opciones
+        MenuGruposDirectivoPanel menuGrupos = new MenuGruposDirectivoPanel();
+        menuGrupos.setVisible(true);
     }
 
     private void administrarHojaVida() {
