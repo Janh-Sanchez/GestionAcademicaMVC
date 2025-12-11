@@ -184,4 +184,23 @@ public class GrupoRepositorio extends RepositorioGenerico<Grupo> {
         return entityManager.createQuery(jpql, Long.class)
             .getSingleResult();
     }
+
+    /**
+     * Busca todos los grupos listos (activos con >= 5 estudiantes) con profesor asignado
+     * Ordenados por grado y nombre
+     */
+    public List<Grupo> buscarGruposListosConProfesor() {
+        String jpql = "SELECT DISTINCT g FROM grupo g " +
+                    "LEFT JOIN FETCH g.grado grado " +
+                    "LEFT JOIN FETCH g.profesor profesor " +
+                    "LEFT JOIN FETCH g.estudiantes " +
+                    "WHERE g.estado = true " +  // Grupo activo
+                    "AND g.profesor IS NOT NULL " +  // Tiene profesor asignado
+                    "AND SIZE(g.estudiantes) >= 5 " +  // Tiene al menos 5 estudiantes
+                    "ORDER BY grado.nombreGrado, g.nombreGrupo";
+        
+        return entityManager.createQuery(jpql, Grupo.class)
+            .setHint("org.hibernate.cacheMode", "IGNORE")
+            .getResultList();
+    }
 }

@@ -8,6 +8,7 @@ import javax.swing.*;
 import com.aplicacion.JPAUtil;
 import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Usuario;
+import com.vista.presentacion.observador.ConsultarObservadorDirectivoPanel;
 
 public class DirectivoFrame extends JFrame {
     private Usuario directivo;
@@ -175,7 +176,9 @@ public class DirectivoFrame extends JFrame {
     }
 
     private void consultarObservador() {
-        mostrarMensajeDesarrollo("Consultar Observador");
+        // El directivo solo puede consultar, no modificar
+        ConsultarObservadorDirectivoPanel panel = new ConsultarObservadorDirectivoPanel();
+        panel.setVisible(true);
     }
 
     private void administrarLogros() {

@@ -6,9 +6,11 @@ import java.awt.event.MouseEvent;
 import javax.swing.*;
 
 import com.aplicacion.JPAUtil;
+import com.controlador.GestionObservadorController;
 import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Acudiente;
 import com.modelo.dominio.Estudiante;
+import com.vista.presentacion.observador.ConsultarObservadorDialog;
 
 public class AcudienteFrame extends JFrame {
     private Acudiente acudiente;
@@ -218,7 +220,41 @@ public class AcudienteFrame extends JFrame {
 
     private void consultarObservador() {
         String estudianteSeleccionado = (String) comboEstudiantes.getSelectedItem();
-        mostrarMensajeDesarrollo("Consultar Observador para " + estudianteSeleccionado);
+        
+        if (estudianteSeleccionado == null || estudianteSeleccionado.equals("Sin estudiantes registrados")) {
+            JOptionPane.showMessageDialog(this,
+                "No hay estudiantes asociados a este acudiente",
+                "Error",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // Encontrar el estudiante seleccionado
+        Estudiante estudiante = null;
+        for (Estudiante est : acudiente.getEstudiantes()) {
+            String nombreCompleto = est.obtenerNombreCompleto();
+            if (nombreCompleto.equals(estudianteSeleccionado)) {
+                estudiante = est;
+                break;
+            }
+        }
+        
+        if (estudiante == null) {
+            JOptionPane.showMessageDialog(this,
+                "No se encontró el estudiante seleccionado",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Crear EntityManager y controlador
+        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
+        var controller = new GestionObservadorController(em);
+        
+        // El acudiente solo puede consultar, no modificar
+        ConsultarObservadorDialog dialogo = new ConsultarObservadorDialog(
+            this, estudiante, controller, false, null);
+        dialogo.setVisible(true);
     }
 
     private void administrarLogros() {

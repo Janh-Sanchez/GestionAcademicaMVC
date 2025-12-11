@@ -1,6 +1,7 @@
 package com.modelo.dominio;
 
 import java.util.HashSet;
+import java.util.Set;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -26,9 +27,9 @@ public class Observador {
 
     @OneToMany(mappedBy = "observador", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 
-    private HashSet<Observacion> observaciones;
+    private Set<Observacion> observaciones;
 
-    public Observador(Integer idObservador, Estudiante estudiante, HashSet<Observacion> observaciones){
+    public Observador(Integer idObservador, Estudiante estudiante, Set<Observacion> observaciones){
         this.idObservador = idObservador;
         this.estudiante = estudiante;
         this.observaciones = observaciones;
@@ -54,15 +55,19 @@ public class Observador {
         this.estudiante = estudiante;
     }
 
-    public HashSet<Observacion> getObservaciones() {
+    public Set<Observacion> getObservaciones() {
         return observaciones;
     }
 
-    public void setObservaciones(HashSet<Observacion> observaciones) {
-        this.observaciones = observaciones;
+    public void setObservaciones(Set<Observacion> observaciones) {
+        if (observaciones == null) {
+            this.observaciones = new HashSet<>();
+        } else {
+            this.observaciones = observaciones;
+        }
     }
 
-    public void agregarObservacion(Observacion observacion){
+    public void agregarObservacion(Observacion observacion) {
         observaciones.add(observacion);
     }
 }

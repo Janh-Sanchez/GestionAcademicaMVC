@@ -47,7 +47,6 @@ public class Observacion {
     }
 
     public Observacion(){
-        
     }
 
     // getters y setters

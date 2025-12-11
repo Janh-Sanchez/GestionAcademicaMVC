@@ -8,6 +8,7 @@ import javax.swing.*;
 import com.aplicacion.JPAUtil;
 import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Profesor;
+import com.vista.presentacion.observador.SeleccionarEstudianteObservadorPanel;
 
 public class ProfesorFrame extends JFrame {
     private Profesor profesor;
@@ -170,7 +171,9 @@ public class ProfesorFrame extends JFrame {
     }
 
     private void consultarObservador() {
-        mostrarMensajeDesarrollo("Consultar Observador");
+        // El profesor puede consultar y modificar
+        SeleccionarEstudianteObservadorPanel panel = new SeleccionarEstudianteObservadorPanel(profesor);
+        panel.setVisible(true);
     }
 
     private void administrarLogros() {
