@@ -3,6 +3,7 @@ package com.controlador;
 import com.modelo.AsignadorGrupos;
 import com.modelo.dominio.*;
 import com.modelo.persistencia.repositorios.*;
+import com.modelo.ServicioCorreo;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
@@ -121,7 +122,7 @@ public class GestionAspirantesController {
     }
 
     /**
-     * Aprueba un estudiante específico
+     * Aprueba un estudiante específico Y envía correo al acudiente si aplica
      */
     public ResultadoOperacion aprobarEstudiante(Integer idEstudiante) {
         EntityTransaction transaction = entityManager.getTransaction();
@@ -175,28 +176,49 @@ public class GestionAspirantesController {
             repoAcudiente.guardar(preinscripcion.getAcudiente());
             repoEstudiante.guardar(estudiante);
             
-            // 6. Determinar mensaje final
+            // 6. Verificar si AHORA no hay estudiantes pendientes
             Acudiente acudiente = preinscripcion.getAcudiente();
-            StringBuilder mensajeBuilder = new StringBuilder("¡Listo! El estudiante fue aprobado con éxito");
-            
-            // Verificar si AHORA no hay estudiantes pendientes
             long pendientesDespues = preinscripcion.getEstudiantes().stream()
                 .filter(e -> e.getEstado() == Estado.Pendiente)
                 .count();
             
             boolean noHayMasPendientes = (pendientesDespues == 0);
             
-            // Mostrar mensaje de credenciales si:
-            // 1. La preinscripción está APROBADA
-            // 2. El acudiente tiene token
-            // 3. NO hay más estudiantes pendientes
+            // 7. ENVIAR CORREO si corresponde
+            boolean correoEnviado = false;
             if (preinscripcion.getEstado() == Estado.Aprobada && 
                 acudiente.getTokenAccess() != null &&
                 noHayMasPendientes) {
                 
-                mensajeBuilder.append("\n\n¡CREDENCIALES GENERADAS! Se han enviado las credenciales de acceso al acudiente.");
+                correoEnviado = ServicioCorreo.enviarCredenciales(
+                    acudiente.getCorreoElectronico(),
+                    acudiente.obtenerNombreCompleto(),
+                    acudiente.getTokenAccess().getNombreUsuario(),
+                    acudiente.getTokenAccess().getContrasena(),
+                    "Acudiente"
+                );
             }
-            // Si aún hay estudiantes pendientes, mostrar cuántos faltan
+            
+            transaction.commit();
+            
+            // 8. Construir mensaje final
+            StringBuilder mensajeBuilder = new StringBuilder("¡Listo! El estudiante fue aprobado con éxito");
+            
+            // Mostrar mensaje de credenciales
+            if (preinscripcion.getEstado() == Estado.Aprobada && 
+                acudiente.getTokenAccess() != null &&
+                noHayMasPendientes) {
+                
+                if (correoEnviado) {
+                    mensajeBuilder.append("\n\n✓ ¡CREDENCIALES GENERADAS Y ENVIADAS! ")
+                        .append("Se han enviado las credenciales de acceso al correo electrónico del acudiente.");
+                } else {
+                    mensajeBuilder.append("\n\n⚠ ¡CREDENCIALES GENERADAS! ")
+                        .append("Sin embargo, no se pudo enviar el correo electrónico. ")
+                        .append("Por favor, entregue las credenciales manualmente.");
+                }
+            }
+            // Si aún hay estudiantes pendientes
             else if (pendientesDespues > 0) {
                 mensajeBuilder.append("\n\nAún hay ").append(pendientesDespues)
                     .append(" estudiante(s) pendiente(s) en esta preinscripción.");
@@ -207,10 +229,7 @@ public class GestionAspirantesController {
                 mensajeBuilder.append("\n\nAdvertencia: Preinscripción aprobada pero no se generaron credenciales.");
             }
             
-            String mensajeFinal = mensajeBuilder.toString();
-            
-            transaction.commit();
-            return ResultadoOperacion.exito(mensajeFinal);
+            return ResultadoOperacion.exito(mensajeBuilder.toString());
             
         } catch (Preinscripcion.DomainException e) {
             if (transaction.isActive()) {
@@ -278,9 +297,31 @@ public class GestionAspirantesController {
             repoAcudiente.guardar(acudiente);
             repoEstudiante.guardar(estudiante);
             
+            // 6. Verificar si AHORA no hay estudiantes pendientes para enviar correo
+            long pendientesDespues = preinscripcion.getEstudiantes().stream()
+                .filter(e -> e.getEstado() == Estado.Pendiente)
+                .count();
+            
+            boolean noHayMasPendientes = (pendientesDespues == 0);
+            
+            // 7. ENVIAR CORREO si corresponde (todos procesados y hay aprobados)
+            boolean correoEnviado = false;
+            if (noHayMasPendientes && 
+                preinscripcion.getEstado() == Estado.Aprobada && 
+                acudiente.getTokenAccess() != null) {
+                
+                correoEnviado = ServicioCorreo.enviarCredenciales(
+                    acudiente.getCorreoElectronico(),
+                    acudiente.obtenerNombreCompleto(),
+                    acudiente.getTokenAccess().getNombreUsuario(),
+                    acudiente.getTokenAccess().getContrasena(),
+                    "Acudiente"
+                );
+            }
+            
             transaction.commit();
             
-            // 6. Determinar mensaje final
+            // 8. Determinar mensaje final
             if (preinscripcion.todosEstudiantesRechazados()) {
                 return ResultadoOperacion.exito(
                     "¡Listo! El estudiante fue rechazado.\n\n" +
@@ -288,13 +329,6 @@ public class GestionAspirantesController {
                     "El acudiente ha sido marcado como RECHAZADO y NO se le generó token de acceso."
                 );
             } else {
-                // Verificar si AHORA no hay estudiantes pendientes
-                long pendientesDespues = preinscripcion.getEstudiantes().stream()
-                    .filter(e -> e.getEstado() == Estado.Pendiente)
-                    .count();
-                
-                boolean noHayMasPendientes = (pendientesDespues == 0);
-                
                 StringBuilder mensaje = new StringBuilder("¡Listo! El estudiante fue rechazado con éxito");
                 
                 // Si no hay más pendientes y la preinscripción está aprobada
@@ -302,7 +336,14 @@ public class GestionAspirantesController {
                     preinscripcion.getEstado() == Estado.Aprobada && 
                     acudiente.getTokenAccess() != null) {
                     
-                    mensaje.append("\n\n¡CREDENCIALES GENERADAS! Se han enviado las credenciales de acceso al acudiente.");
+                    if (correoEnviado) {
+                        mensaje.append("\n\n✓ ¡CREDENCIALES GENERADAS Y ENVIADAS! ")
+                            .append("Se han enviado las credenciales de acceso al correo electrónico del acudiente.");
+                    } else {
+                        mensaje.append("\n\n⚠ ¡CREDENCIALES GENERADAS! ")
+                            .append("Sin embargo, no se pudo enviar el correo electrónico. ")
+                            .append("Por favor, entregue las credenciales manualmente.");
+                    }
                 }
                 // Si aún hay pendientes
                 else if (pendientesDespues > 0) {

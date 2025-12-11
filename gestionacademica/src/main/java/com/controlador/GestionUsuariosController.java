@@ -3,6 +3,7 @@ package com.controlador;
 import com.modelo.dominio.*;
 import com.modelo.dtos.UsuarioDTO;
 import com.modelo.persistencia.repositorios.*;
+import com.modelo.ServicioCorreo;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
@@ -21,7 +22,7 @@ public class GestionUsuariosController {
     
     /**
      * CU 2.2 - Crear usuario SIMPLIFICADO
-     * Ahora el dominio maneja su propia creación
+     * Ahora el dominio maneja su propia creación Y envía correo
      */
     public ResultadoOperacion crearUsuario(UsuarioDTO datos) {
         if (datos == null) {
@@ -69,10 +70,27 @@ public class GestionUsuariosController {
             
             transaction.commit();
             
-            return ResultadoOperacion.exitoConDatos(
-                "Usuario creado exitosamente",
-                usuario
-            );
+            // 7. ENVIAR CORREO CON CREDENCIALES
+            boolean correoEnviado = false;
+            if (usuario.getTokenAccess() != null) {
+                correoEnviado = ServicioCorreo.enviarCredenciales(
+                    usuario.getCorreoElectronico(),
+                    usuario.obtenerNombreCompleto(),
+                    usuario.getTokenAccess().getNombreUsuario(),
+                    usuario.getTokenAccess().getContrasena(),
+                    datos.nombreRol
+                );
+            }
+            
+            // 8. Preparar mensaje de resultado
+            String mensajeExito = "Usuario creado exitosamente";
+            if (correoEnviado) {
+                mensajeExito += "\n✓ Credenciales enviadas por correo electrónico";
+            } else if (usuario.getTokenAccess() != null) {
+                mensajeExito += "\n⚠ Advertencia: No se pudo enviar el correo con las credenciales";
+            }
+            
+            return ResultadoOperacion.exitoConDatos(mensajeExito, usuario);
             
         } catch (Exception e) {
             if (transaction.isActive()) {
