@@ -42,7 +42,14 @@ public class DiligenciarHojaVidaDialog extends JDialog {
                                     GestionHojaVidaController controller) {
         super(parent, "Completar Hojas de Vida - Obligatorio", true);
         this.controller = controller;
-        this.estudiantes = new ArrayList<>(acudiente.getEstudiantes());
+        this.estudiantes = new ArrayList<>(acudiente.obtenerEstudiantesAprobadosConHojaVidaIncompleta());
+        
+        // Verificar si hay estudiantes
+        if (estudiantes.isEmpty()) {
+            todasDiligenciadas = true; // Marcar como completadas
+            dispose(); // Cerrar el diálogo inmediatamente
+            return;
+        }
         
         // Hacer que no se pueda cerrar sin completar
         setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
@@ -311,6 +318,13 @@ public class DiligenciarHojaVidaDialog extends JDialog {
         String aspectos = txtAspectosRelevantes.getText().trim();
         String alergias = txtAlergias.getText().trim();
 
+        // Validación del lado del cliente
+        String error = validarCampos(alergias, aspectos, enfermedades);
+        if (error != null) {
+            mostrarError(error);
+            return;
+        }
+
         // Guardar hoja de vida
         ResultadoOperacion resultado = controller.guardarHojaVida(
             estudiante.getIdEstudiante(), alergias, aspectos, enfermedades);
@@ -325,11 +339,12 @@ public class DiligenciarHojaVidaDialog extends JDialog {
 
         if (estudianteActualIndex >= estudiantes.size()) {
             // Ya terminamos con todos
+            System.out.println("DEBUG - Todos los estudiantes completados");
             mostrarExito();
-            todasDiligenciadas = true;
-            dispose();
+            // NO LLAMAR A dispose() AQUÍ - se llamará desde el diálogo de éxito
         } else {
             // Cargar siguiente estudiante
+            System.out.println("DEBUG - Pasando al siguiente estudiante");
             cargarDatosEstudianteActual();
         }
     }
@@ -351,49 +366,113 @@ public class DiligenciarHojaVidaDialog extends JDialog {
     }
 
     private void mostrarError(String mensaje) {
+        System.out.println("ERROR - Mostrando mensaje: " + mensaje);
         JOptionPane.showMessageDialog(this,
             mensaje,
             "Error de validación",
-            JOptionPane.WARNING_MESSAGE);
+            JOptionPane.ERROR_MESSAGE); // Cambiado a ERROR_MESSAGE
     }
 
     private void mostrarExito() {
-        JDialog dialogo = new JDialog(this, "Éxito", false);
-        dialogo.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialogo.setUndecorated(true);
-        dialogo.setLayout(new BorderLayout(10, 10));
-        dialogo.setSize(400, 250);
-        dialogo.setLocationRelativeTo(this);
+        System.out.println("DEBUG - Mostrando diálogo de éxito");
+        
+        // Crear un diálogo modal que bloquee la interfaz
+        JDialog dialogoExito = new JDialog(this, "Éxito", true);
+        dialogoExito.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        dialogoExito.setUndecorated(true);
+        dialogoExito.setLayout(new BorderLayout(10, 10));
+        dialogoExito.setSize(400, 250);
+        dialogoExito.setLocationRelativeTo(this);
+        
+        // Agregar un borde decorativo
+        dialogoExito.getRootPane().setBorder(BorderFactory.createLineBorder(new Color(0, 150, 0), 2));
 
         JPanel panelContenido = new JPanel(new BorderLayout(10, 10));
         panelContenido.setBackground(Color.WHITE);
         panelContenido.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         JLabel lblIcono = new JLabel("✓", SwingConstants.CENTER);
-        lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 50));
+        lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 60));
         lblIcono.setForeground(new Color(0, 150, 0));
 
         JLabel lblMensaje = new JLabel(
-            "<html><center>Los datos fueron guardados correctamente en la(s) hoja(s) de vida</center></html>",
+            "<html><center><b>¡Hoja de vida completada!</b><br><br>" +
+            "Los datos fueron guardados correctamente.</center></html>",
             SwingConstants.CENTER);
         lblMensaje.setFont(new Font("Arial", Font.PLAIN, 14));
         lblMensaje.setForeground(CT);
 
-        JButton btnAceptar = new JButton("Entrar");
-        btnAceptar.addActionListener(e -> dialogo.dispose());
+        JButton btnAceptar = new JButton("Continuar");
+        btnAceptar.addActionListener(e -> {
+            System.out.println("DEBUG - Botón Continuar presionado");
+            dialogoExito.dispose();
+            // Ahora sí cerrar el diálogo principal
+            todasDiligenciadas = true;
+            dispose();
+        });
+        btnAceptar.setFont(new Font("Arial", Font.BOLD, 12));
         btnAceptar.setBackground(CB);
         btnAceptar.setForeground(CT);
         btnAceptar.setFocusPainted(false);
+        btnAceptar.setBorderPainted(false);
+        btnAceptar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnAceptar.setPreferredSize(new Dimension(100, 35));
 
         panelContenido.add(lblIcono, BorderLayout.NORTH);
         panelContenido.add(lblMensaje, BorderLayout.CENTER);
         panelContenido.add(btnAceptar, BorderLayout.SOUTH);
 
-        dialogo.add(panelContenido);
-        dialogo.setVisible(true);
+        dialogoExito.add(panelContenido);
+        
+        // Agregar listener para cerrar con ESC
+        dialogoExito.getRootPane().registerKeyboardAction(
+            e -> {
+                dialogoExito.dispose();
+                todasDiligenciadas = true;
+                dispose();
+            },
+            KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0),
+            JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+
+        // Mostrar el diálogo
+        dialogoExito.setVisible(true);
+        
+        // No llamar a dispose() aquí, se llamará cuando se cierre el diálogo de éxito
     }
 
     public boolean seCompletaronTodasLasHojas() {
         return todasDiligenciadas;
     }
+
+    private String validarCampos(String alergias, String aspectos, String enfermedades) {
+    // Validar que no estén vacíos
+    if (alergias.isEmpty() || aspectos.isEmpty() || enfermedades.isEmpty()) {
+        return "Todos los campos son obligatorios. Si no aplica, escriba 'No aplica'";
+    }
+    
+    // Validar longitud mínima solo si no es "No aplica"
+    if (!alergias.equalsIgnoreCase("No aplica") && alergias.length() < MIN_CARACTERES) {
+        return "El campo Alergias debe tener al menos " + MIN_CARACTERES + " caracteres";
+    }
+    if (!aspectos.equalsIgnoreCase("No aplica") && aspectos.length() < MIN_CARACTERES) {
+        return "El campo Aspectos Relevantes debe tener al menos " + MIN_CARACTERES + " caracteres";
+    }
+    if (!enfermedades.equalsIgnoreCase("No aplica") && enfermedades.length() < MIN_CARACTERES) {
+        return "El campo Enfermedades debe tener al menos " + MIN_CARACTERES + " caracteres";
+    }
+    
+    // Validar longitud máxima
+    if (alergias.length() > MAX_CARACTERES) {
+        return "El campo Alergias no puede exceder " + MAX_CARACTERES + " caracteres";
+    }
+    if (aspectos.length() > MAX_CARACTERES) {
+        return "El campo Aspectos Relevantes no puede exceder " + MAX_CARACTERES + " caracteres";
+    }
+    if (enfermedades.length() > MAX_CARACTERES) {
+        return "El campo Enfermedades no puede exceder " + MAX_CARACTERES + " caracteres";
+    }
+    
+    return null; // Todo válido
+}
 }

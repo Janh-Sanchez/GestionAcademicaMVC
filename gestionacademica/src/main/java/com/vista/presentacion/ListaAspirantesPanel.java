@@ -1,6 +1,5 @@
 package com.vista.presentacion;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.GestionAspirantesController;
 import com.controlador.GestionAspirantesController.AspiranteDTO;
 import com.controlador.GestionAspirantesController.EstudianteDTO;
@@ -32,8 +31,7 @@ public class ListaAspirantesPanel extends JFrame {
     private JScrollPane scrollPane;
     
     public ListaAspirantesPanel() {
-        this.controlador = new GestionAspirantesController(
-            JPAUtil.getEntityManagerFactory().createEntityManager());
+        this.controlador = new GestionAspirantesController();
         inicializarComponentes();
         cargarAspirantes();
     }

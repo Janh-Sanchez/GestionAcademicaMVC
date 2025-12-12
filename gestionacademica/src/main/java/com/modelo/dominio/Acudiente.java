@@ -1,6 +1,8 @@
 package com.modelo.dominio;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -141,6 +143,74 @@ public class Acudiente extends Usuario {
             return MAX_ESTUDIANTES;
         }
         return Math.max(0, MAX_ESTUDIANTES - estudiantes.size());
+    }
+
+    /**
+     * Método auxiliar para verificar si un campo está vacío
+     * Considera "no aplica" como completado
+     */
+    private boolean isVacio(String valor) {
+        return valor == null || 
+            valor.trim().isEmpty() || 
+            valor.trim().equalsIgnoreCase("No especificado");
+    }
+
+    public Set<Estudiante> obtenerEstudiantesAprobados() {
+        Set<Estudiante> aprobados = new HashSet<>();
+        
+        if (this.estudiantes != null) {
+            for (Estudiante estudiante : this.estudiantes) {
+                if (estudiante.getEstado() == Estado.Aprobada) {
+                    aprobados.add(estudiante);
+                }
+            }
+        }
+        
+        return aprobados;
+    }
+
+    /**
+     * Verifica si requiere completar hojas de vida (SOLO para estudiantes aprobados)
+     */
+    public boolean requiereCompletarHojasVida() {
+        Set<Estudiante> estudiantesAprobados = obtenerEstudiantesAprobados();
+        
+        if (estudiantesAprobados.isEmpty()) {
+            return false; // No tiene estudiantes aprobados
+        }
+        
+        for (Estudiante estudiante : estudiantesAprobados) {
+            HojaVida hojaVida = estudiante.getHojaDeVida();
+            if (hojaVida == null || 
+                isVacio(hojaVida.getEnfermedades()) || 
+                isVacio(hojaVida.getAspectosRelevantes()) || 
+                isVacio(hojaVida.getAlergias())) {
+                return true; // Encontró un estudiante APROBADO con hoja incompleta
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Obtiene estudiantes APROBADOS con hojas de vida incompletas
+     */
+    public List<Estudiante> obtenerEstudiantesAprobadosConHojaVidaIncompleta() {
+        List<Estudiante> incompletos = new ArrayList<>();
+        
+        Set<Estudiante> estudiantesAprobados = obtenerEstudiantesAprobados();
+        
+        for (Estudiante estudiante : estudiantesAprobados) {
+            HojaVida hojaVida = estudiante.getHojaDeVida();
+            if (hojaVida == null || 
+                isVacio(hojaVida.getEnfermedades()) || 
+                isVacio(hojaVida.getAspectosRelevantes()) || 
+                isVacio(hojaVida.getAlergias())) {
+                incompletos.add(estudiante);
+            }
+        }
+        
+        return incompletos;
     }
 
     @Override

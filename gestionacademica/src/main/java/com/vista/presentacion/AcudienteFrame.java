@@ -144,7 +144,7 @@ public class AcudienteFrame extends JFrame {
         DefaultComboBoxModel<String> modelo = new DefaultComboBoxModel<>();
         
         if (acudiente != null && acudiente.getEstudiantes() != null && !acudiente.getEstudiantes().isEmpty()) {
-            for (Estudiante estudiante : acudiente.getEstudiantes()) {
+            for (Estudiante estudiante : acudiente.obtenerEstudiantesAprobados()) {
                 String nombreCompleto = estudiante.getPrimerNombre() + " " + estudiante.getPrimerApellido();
                 if (estudiante.getSegundoNombre() != null && !estudiante.getSegundoNombre().isEmpty()) {
                     nombreCompleto = estudiante.getPrimerNombre() + " " + estudiante.getSegundoNombre() + " " + estudiante.getPrimerApellido();

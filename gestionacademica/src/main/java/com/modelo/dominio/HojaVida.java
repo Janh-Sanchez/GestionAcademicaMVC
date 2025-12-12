@@ -57,8 +57,13 @@ public class HojaVida {
     public static ResultadoValidacionDominio validarCampo(
             String valor, String nombreCampo, boolean esObligatorio) {
         
+        // Verificar si es "No aplica" (este es un valor válido explícito)
+        if (valor != null && valor.equalsIgnoreCase("No aplica")) {
+            return ResultadoValidacionDominio.exito(); // "No aplica" es válido
+        }
+        
         // Si es null o vacío
-        if (valor == null || valor.trim().isEmpty() || valor.equalsIgnoreCase("No aplica")) {
+        if (valor == null || valor.trim().isEmpty()) {
             if (esObligatorio) {
                 return ResultadoValidacionDominio.error(nombreCampo, 
                     "Campo obligatorio. Si no aplica, escriba 'No aplica'");
@@ -66,7 +71,7 @@ public class HojaVida {
             return ResultadoValidacionDominio.exito(); // Opcional y vacío está bien
         }
         
-        // Si tiene contenido, validar longitud
+        // Si tiene contenido (diferente de "No aplica"), validar longitud
         String valorTrim = valor.trim();
         
         if (valorTrim.length() < MIN_LONGITUD_CAMPO) {
@@ -116,21 +121,21 @@ public class HojaVida {
      */
     public boolean estaCompleta() {
         return alergias != null && !alergias.trim().isEmpty() &&
-               aspectosRelevantes != null && !aspectosRelevantes.trim().isEmpty() &&
-               enfermedades != null && !enfermedades.trim().isEmpty();
+            aspectosRelevantes != null && !aspectosRelevantes.trim().isEmpty() &&
+            enfermedades != null && !enfermedades.trim().isEmpty();
     }
-
+    
     /**
      * Normaliza los campos "No aplica" a formato estándar
      */
     private void normalizarCampos() {
-        if (alergias != null && alergias.trim().isEmpty()) {
+        if (alergias != null && (alergias.trim().isEmpty() || alergias.trim().equalsIgnoreCase("no aplica"))) {
             alergias = "No aplica";
         }
-        if (aspectosRelevantes != null && aspectosRelevantes.trim().isEmpty()) {
+        if (aspectosRelevantes != null && (aspectosRelevantes.trim().isEmpty() || aspectosRelevantes.trim().equalsIgnoreCase("no aplica"))) {
             aspectosRelevantes = "No aplica";
         }
-        if (enfermedades != null && enfermedades.trim().isEmpty()) {
+        if (enfermedades != null && (enfermedades.trim().isEmpty() || enfermedades.trim().equalsIgnoreCase("no aplica"))) {
             enfermedades = "No aplica";
         }
     }

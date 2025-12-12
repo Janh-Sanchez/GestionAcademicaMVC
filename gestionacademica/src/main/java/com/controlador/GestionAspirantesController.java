@@ -1,5 +1,6 @@
 package com.controlador;
 
+import com.aplicacion.JPAUtil;
 import com.modelo.AsignadorGrupos;
 import com.modelo.dominio.*;
 import com.modelo.persistencia.repositorios.*;
@@ -20,8 +21,8 @@ public class GestionAspirantesController {
     private final GradoRepositorio repoGrado;
     private final RolRepositorio repoRol;
     
-    public GestionAspirantesController(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    public GestionAspirantesController() {
+        this.entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
         this.repoPreinscripcion = new PreinscripcionRepositorio(entityManager);
         this.repoEstudiante = new RepositorioGenerico<>(entityManager, Estudiante.class);
         this.repoAcudiente = new AcudienteRepositorio(entityManager);

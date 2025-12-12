@@ -165,9 +165,6 @@ public class DirectivoFrame extends JFrame {
         listaAspirantesPanel.setVisible(true);
     }
 
-    // En DirectivoFrame.java, reemplaza el método administrarGrupos():
-
-    // En DirectivoFrame.java, modificar el método administrarGrupos():
     private void administrarGrupos() {
         // Para el directivo: mostrar menú intermedio con opciones
         MenuGruposDirectivoPanel menuGrupos = new MenuGruposDirectivoPanel();
