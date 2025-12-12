@@ -1,8 +1,8 @@
 package com.vista.presentacion;
 
 import com.controlador.GestionGruposController;
-import com.controlador.GestionGruposController.GrupoDTO;
-import com.controlador.GestionGruposController.ProfesorDTO;
+import com.modelo.dominio.Grupo;
+import com.modelo.dominio.Profesor;
 import com.modelo.dominio.ResultadoOperacion;
 
 import javax.swing.*;
@@ -29,7 +29,7 @@ public class AsignarProfesoresPanel extends JFrame {
     private GestionGruposController controlador;
     private JPanel panelContenido;
     private JScrollPane scrollPane;
-    private List<ProfesorDTO> profesoresDisponibles;
+    private List<Profesor> profesoresDisponibles;
     
     public AsignarProfesoresPanel() {
         this.controlador = new GestionGruposController();
@@ -101,7 +101,7 @@ public class AsignarProfesoresPanel extends JFrame {
         // Cargar profesores disponibles
         ResultadoOperacion resultadoProfesores = controlador.obtenerProfesoresDisponibles();
         if (resultadoProfesores.isExitoso()) {
-            profesoresDisponibles = (List<ProfesorDTO>) resultadoProfesores.getDatos();
+            profesoresDisponibles = (List<Profesor>) resultadoProfesores.getDatos();
         } else {
             profesoresDisponibles = List.of();
         }
@@ -144,12 +144,13 @@ public class AsignarProfesoresPanel extends JFrame {
         
         // Agrupar por grado
         @SuppressWarnings("unchecked")
-        List<GrupoDTO> grupos = (List<GrupoDTO>) resultado.getDatos();
-        Map<String, List<GrupoDTO>> gruposPorGrado = grupos.stream()
-            .collect(java.util.stream.Collectors.groupingBy(GrupoDTO::getNombreGrado));
+        List<Grupo> grupos = (List<Grupo>) resultado.getDatos();
+        Map<String, List<Grupo>> gruposPorGrado = grupos.stream()
+            .collect(java.util.stream.Collectors.groupingBy(g -> 
+                g.getGrado() != null ? g.getGrado().getNombreGrado() : "Sin grado"));
         
         // Agregar grupos organizados por grado
-        for (Map.Entry<String, List<GrupoDTO>> entry : gruposPorGrado.entrySet()) {
+        for (Map.Entry<String, List<Grupo>> entry : gruposPorGrado.entrySet()) {
             panelContenido.add(crearPanelGrado(entry.getKey(), entry.getValue()));
             panelContenido.add(Box.createVerticalStrut(15));
         }
@@ -158,7 +159,7 @@ public class AsignarProfesoresPanel extends JFrame {
         panelContenido.repaint();
     }
     
-    private JPanel crearPanelGrado(String nombreGrado, List<GrupoDTO> grupos) {
+    private JPanel crearPanelGrado(String nombreGrado, List<Grupo> grupos) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(CF);
@@ -174,7 +175,7 @@ public class AsignarProfesoresPanel extends JFrame {
         panel.add(Box.createVerticalStrut(8));
         
         // Grupos del grado
-        for (GrupoDTO grupo : grupos) {
+        for (Grupo grupo : grupos) {
             panel.add(crearPanelGrupo(grupo));
             panel.add(Box.createVerticalStrut(8));
         }
@@ -182,7 +183,7 @@ public class AsignarProfesoresPanel extends JFrame {
         return panel;
     }
     
-    private JPanel crearPanelGrupo(GrupoDTO grupo) {
+    private JPanel crearPanelGrupo(Grupo grupo) {
         JPanel panel = new JPanel(new BorderLayout(15, 0));
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -202,20 +203,20 @@ public class AsignarProfesoresPanel extends JFrame {
         panelInfo.add(lblNombre);
         
         // Información de estudiantes y estado
-        String estadoTexto = grupo.isEstaEnFormacion() ? 
+        String estadoTexto = grupo.estaEnFormacion() ? 
             "• " + grupo.getCantidadEstudiantes() + " estudiantes - El grupo está en formación" :
             "• " + grupo.getCantidadEstudiantes() + " estudiantes";
         
         JLabel lblEstado = new JLabel(estadoTexto);
         lblEstado.setFont(new Font("Arial", Font.PLAIN, 11));
-        lblEstado.setForeground(grupo.isEstaEnFormacion() ? 
+        lblEstado.setForeground(grupo.estaEnFormacion() ? 
             new Color(255, 100, 100) : new Color(100, 100, 100));
         panelInfo.add(lblEstado);
         
         panel.add(panelInfo, BorderLayout.WEST);
         
         // Panel derecho - Asignación de profesor
-        if (grupo.isEstaEnFormacion()) {
+        if (grupo.estaEnFormacion()) {
             // Grupo en formación - mostrar deshabilitado
             JComboBox<String> comboProfesor = new JComboBox<>();
             comboProfesor.addItem("Asignar Profesor");
@@ -229,10 +230,10 @@ public class AsignarProfesoresPanel extends JFrame {
             panelDerecho.add(comboProfesor);
             
             panel.add(panelDerecho, BorderLayout.EAST);
-        } else if (grupo.getProfesorAsignado() != null) {
+        } else if (grupo.tieneProfesorAsignado()) {
             // Grupo con profesor asignado
-            JLabel lblProfesor = new JLabel("✓ " + 
-                grupo.getProfesorAsignado().getNombreCompleto());
+            Profesor profesor = grupo.getProfesor();
+            JLabel lblProfesor = new JLabel("✓ " + profesor.obtenerNombreCompleto());
             lblProfesor.setFont(new Font("Arial", Font.BOLD, 12));
             lblProfesor.setForeground(VERDE);
             
@@ -246,11 +247,26 @@ public class AsignarProfesoresPanel extends JFrame {
             JPanel panelDerecho = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
             panelDerecho.setBackground(Color.WHITE);
             
-            JComboBox<String> comboProfesor = new JComboBox<>();
-            comboProfesor.addItem("Asignar Profesor");
+            JComboBox<Profesor> comboProfesor = new JComboBox<>();
             
-            for (ProfesorDTO profesor : profesoresDisponibles) {
-                comboProfesor.addItem(profesor.getNombreCompleto());
+            // Agregar placeholder
+            comboProfesor.addItem(null);
+            comboProfesor.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, 
+                        int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value == null) {
+                        setText("Asignar Profesor");
+                    } else if (value instanceof Profesor) {
+                        setText(((Profesor) value).obtenerNombreCompleto());
+                    }
+                    return this;
+                }
+            });
+            
+            for (Profesor profesor : profesoresDisponibles) {
+                comboProfesor.addItem(profesor);
             }
             
             comboProfesor.setFont(new Font("Arial", Font.PLAIN, 11));
@@ -260,10 +276,8 @@ public class AsignarProfesoresPanel extends JFrame {
             
             JButton btnAsignar = crearBotonAccion("Asignar", CB, CBH);
             btnAsignar.addActionListener(e -> {
-                int indice = comboProfesor.getSelectedIndex();
-                if (indice > 0) {
-                    ProfesorDTO profesorSeleccionado = 
-                        profesoresDisponibles.get(indice - 1);
+                Profesor profesorSeleccionado = (Profesor) comboProfesor.getSelectedItem();
+                if (profesorSeleccionado != null) {
                     asignarProfesor(grupo, profesorSeleccionado);
                 } else {
                     JOptionPane.showMessageDialog(this,
@@ -305,10 +319,10 @@ public class AsignarProfesoresPanel extends JFrame {
     /**
      * Asigna un profesor a un grupo a través del controlador MVC
      */
-    private void asignarProfesor(GrupoDTO grupo, ProfesorDTO profesor) {
+    private void asignarProfesor(Grupo grupo, Profesor profesor) {
         int confirmacion = JOptionPane.showConfirmDialog(
             this,
-            "¿Está seguro que desea asignar a " + profesor.getNombreCompleto() + 
+            "¿Está seguro que desea asignar a " + profesor.obtenerNombreCompleto() + 
             "\nal grupo " + grupo.getNombreGrupo() + "?",
             "Confirmar asignación",
             JOptionPane.YES_NO_OPTION,
@@ -316,10 +330,10 @@ public class AsignarProfesoresPanel extends JFrame {
         );
         
         if (confirmacion == JOptionPane.YES_OPTION) {
-            // Comunicación con el controlador
+            // Comunicación con el controlador usando IDs directos
             ResultadoOperacion resultado = controlador.asignarProfesorAGrupo(
                 grupo.getIdGrupo(), 
-                profesor.getIdProfesor()
+                profesor.getIdUsuario()
             );
             
             if (resultado.isExitoso()) {

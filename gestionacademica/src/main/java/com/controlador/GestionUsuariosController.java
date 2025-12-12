@@ -1,7 +1,6 @@
 package com.controlador;
 
 import com.modelo.dominio.*;
-import com.modelo.dtos.UsuarioDTO;
 import com.modelo.persistencia.repositorios.*;
 import com.aplicacion.JPAUtil;
 import com.modelo.ServicioCorreo;
@@ -25,9 +24,19 @@ public class GestionUsuariosController {
      * CU 2.2 - Crear usuario SIMPLIFICADO
      * Ahora el dominio maneja su propia creación Y envía correo
      */
-    public ResultadoOperacion crearUsuario(UsuarioDTO datos) {
-        if (datos == null) {
-            return ResultadoOperacion.error("Los datos del usuario son obligatorios");
+    public ResultadoOperacion crearUsuario(
+            String nuip,
+            String primerNombre,
+            String segundoNombre,
+            String primerApellido,
+            String segundoApellido,
+            Integer edad,
+            String correoElectronico,
+            String telefono,
+            String nombreRol) {
+        
+        if (nombreRol == null || nombreRol.trim().isEmpty()) {
+            return ResultadoOperacion.error("El rol es obligatorio");
         }
         
         EntityTransaction transaction = entityManager.getTransaction();
@@ -36,7 +45,7 @@ public class GestionUsuariosController {
             transaction.begin();
             
             // 1. Buscar rol (validación temprana)
-            Optional<Rol> rolOpt = rolRepositorio.buscarPorNombreRol(datos.nombreRol);
+            Optional<Rol> rolOpt = rolRepositorio.buscarPorNombreRol(nombreRol);
             if (rolOpt.isEmpty()) {
                 return ResultadoOperacion.errorValidacion("rol", 
                     "El rol especificado no existe");
@@ -44,14 +53,17 @@ public class GestionUsuariosController {
             
             Rol rol = rolOpt.get();
             
-            // 2. Crear usuario del tipo correcto (el dominio decide el tipo)
-            Usuario usuario = crearInstanciaSegunRol(datos);
-            
-            // 3. Validar duplicados ANTES de intentar crear
-            ResultadoOperacion validacionDuplicados = validarDuplicados(datos);
+            // 2. Validar duplicados ANTES de intentar crear
+            ResultadoOperacion validacionDuplicados = validarDuplicados(
+                nuip, correoElectronico, telefono);
             if (!validacionDuplicados.isExitoso()) {
                 return validacionDuplicados;
             }
+            
+            // 3. Crear usuario del tipo correcto (el dominio decide el tipo)
+            Usuario usuario = crearInstanciaSegunRol(
+                nuip, primerNombre, segundoNombre, primerApellido, 
+                segundoApellido, edad, correoElectronico, telefono, nombreRol);
             
             // 4. DELEGAR AL DOMINIO la creación completa
             ResultadoValidacionDominio creacion = usuario.crearUsuarioCompleto(rol);
@@ -79,7 +91,7 @@ public class GestionUsuariosController {
                     usuario.obtenerNombreCompleto(),
                     usuario.getTokenAccess().getNombreUsuario(),
                     usuario.getTokenAccess().getContrasena(),
-                    datos.nombreRol
+                    nombreRol
                 );
             }
             
@@ -106,10 +118,20 @@ public class GestionUsuariosController {
     /**
      * Método auxiliar para crear instancia según rol
      */
-    private Usuario crearInstanciaSegunRol(UsuarioDTO datos) {
+    private Usuario crearInstanciaSegunRol(
+            String nuip,
+            String primerNombre,
+            String segundoNombre,
+            String primerApellido,
+            String segundoApellido,
+            Integer edad,
+            String correoElectronico,
+            String telefono,
+            String nombreRol) {
+        
         Usuario usuario;
         
-        switch (datos.nombreRol.toLowerCase()) {
+        switch (nombreRol.toLowerCase()) {
             case "profesor":
                 usuario = new Profesor();
                 break;
@@ -118,18 +140,18 @@ public class GestionUsuariosController {
                 break;
             default:
                 throw new IllegalArgumentException(
-                    "Rol no soportado: " + datos.nombreRol);
+                    "Rol no soportado: " + nombreRol);
         }
         
         // Mapear datos comunes
-        usuario.setNuipUsuario(datos.nuip);
-        usuario.setPrimerNombre(datos.primerNombre);
-        usuario.setSegundoNombre(datos.segundoNombre);
-        usuario.setPrimerApellido(datos.primerApellido);
-        usuario.setSegundoApellido(datos.segundoApellido);
-        usuario.setEdad(datos.edad);
-        usuario.setCorreoElectronico(datos.correoElectronico);
-        usuario.setTelefono(datos.telefono);
+        usuario.setNuipUsuario(nuip);
+        usuario.setPrimerNombre(primerNombre);
+        usuario.setSegundoNombre(segundoNombre);
+        usuario.setPrimerApellido(primerApellido);
+        usuario.setSegundoApellido(segundoApellido);
+        usuario.setEdad(edad);
+        usuario.setCorreoElectronico(correoElectronico);
+        usuario.setTelefono(telefono);
         
         return usuario;
     }
@@ -137,19 +159,23 @@ public class GestionUsuariosController {
     /**
      * Validación de duplicados separada
      */
-    private ResultadoOperacion validarDuplicados(UsuarioDTO datos) {
+    private ResultadoOperacion validarDuplicados(
+            String nuip,
+            String correoElectronico,
+            String telefono) {
+        
         try {
-            if (usuarioRepositorio.existePorNuip(datos.nuip)) {
+            if (usuarioRepositorio.existePorNuip(nuip)) {
                 return ResultadoOperacion.errorValidacion("nuip",
                     "Ya existe un usuario registrado con este NUIP");
             }
             
-            if (usuarioRepositorio.existePorCorreo(datos.correoElectronico)) {
+            if (usuarioRepositorio.existePorCorreo(correoElectronico)) {
                 return ResultadoOperacion.errorValidacion("correoElectronico",
                     "Ya existe un usuario registrado con este correo electrónico");
             }
             
-            if (usuarioRepositorio.existePorTelefono(datos.telefono)) {
+            if (usuarioRepositorio.existePorTelefono(telefono)) {
                 return ResultadoOperacion.errorValidacion("telefono",
                     "Ya existe un usuario registrado con este teléfono");
             }
@@ -166,20 +192,32 @@ public class GestionUsuariosController {
     /**
      * Validación previa (para UI)
      */
-    public ResultadoOperacion validarDatosUsuario(UsuarioDTO datos) {
+    public ResultadoOperacion validarDatosUsuario(
+            String nuip,
+            String primerNombre,
+            String segundoNombre,
+            String primerApellido,
+            String segundoApellido,
+            Integer edad,
+            String correoElectronico,
+            String telefono,
+            String nombreRol) {
+        
         // Validación básica de estructura
-        if (datos.nombreRol == null || datos.nombreRol.trim().isEmpty()) {
+        if (nombreRol == null || nombreRol.trim().isEmpty()) {
             return ResultadoOperacion.errorValidacion("rol", "El rol es obligatorio");
         }
         
         // Validar rol existe
-        Optional<Rol> rolOpt = rolRepositorio.buscarPorNombreRol(datos.nombreRol);
+        Optional<Rol> rolOpt = rolRepositorio.buscarPorNombreRol(nombreRol);
         if (rolOpt.isEmpty()) {
             return ResultadoOperacion.errorValidacion("rol", "El rol especificado no existe");
         }
         
         // Crear instancia temporal para validación del dominio
-        Usuario usuario = crearInstanciaSegunRol(datos);
+        Usuario usuario = crearInstanciaSegunRol(
+            nuip, primerNombre, segundoNombre, primerApellido,
+            segundoApellido, edad, correoElectronico, telefono, nombreRol);
         
         // Delegar validación al dominio
         ResultadoValidacionDominio validacion = usuario.validarDatosBasicos();
@@ -192,7 +230,7 @@ public class GestionUsuariosController {
         }
         
         // Validar duplicados (sin guardar)
-        return validarDuplicados(datos);
+        return validarDuplicados(nuip, correoElectronico, telefono);
     }
 
     /**

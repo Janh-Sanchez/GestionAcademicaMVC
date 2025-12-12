@@ -10,7 +10,6 @@ import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.ResultadoOperacion;
 import com.modelo.dominio.Rol;
 import com.modelo.dominio.Usuario;
-import com.modelo.dtos.UsuarioDTO;
 
 /**
  * Formulario para crear usuarios (CU 2.2)
@@ -229,58 +228,71 @@ public class CrearUsuarioFrame extends JFrame {
     }
     
     private void guardarUsuario() {
-        // Recopilar datos del formulario
-        UsuarioDTO datos = new UsuarioDTO();
-        datos.nuip = txtNuip.getText().trim();
-        datos.primerNombre = txtPrimerNombre.getText().trim();
-        datos.segundoNombre = txtSegundoNombre.getText().trim();
-        datos.primerApellido = txtPrimerApellido.getText().trim();
-        datos.segundoApellido = txtSegundoApellido.getText().trim();
-        datos.correoElectronico = txtCorreo.getText().trim();
-        datos.telefono = txtTelefono.getText().trim();
+        // Obtener datos del formulario
+        String nuip = txtNuip.getText().trim();
+        String primerNombre = txtPrimerNombre.getText().trim();
+        String segundoNombre = txtSegundoNombre.getText().trim();
+        String primerApellido = txtPrimerApellido.getText().trim();
+        String segundoApellido = txtSegundoApellido.getText().trim();
+        String correoElectronico = txtCorreo.getText().trim();
+        String telefono = txtTelefono.getText().trim();
         
         // Validar rol y determinar tipo de usuario
-        String rol = (String) cmbRol.getSelectedItem();
-        if (rol == null || rol.equals("Seleccionar rol...")) {
+        String nombreRol = (String) cmbRol.getSelectedItem();
+        if (nombreRol == null || nombreRol.equals("Seleccionar rol...")) {
             mostrarError("rol", "Debe seleccionar un rol");
             return;
         }
-        datos.nombreRol = rol;
         
         // Validar y parsear edad
+        Integer edad = null;
         try {
             String edadStr = txtEdad.getText().trim();
             if (edadStr.isEmpty()) {
                 mostrarError("edad", "La edad es obligatoria");
                 return;
             }
-            datos.edad = Integer.parseInt(edadStr);
+            edad = Integer.parseInt(edadStr);
         } catch (NumberFormatException e) {
             mostrarError("edad", "La edad debe ser un número válido");
             return;
         }
         
-        // Enviar al controlador
+        // Primero validar datos antes de crear
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        ResultadoOperacion resultado = controller.crearUsuario(datos);
-        setCursor(Cursor.getDefaultCursor());
+        ResultadoOperacion validacion = controller.validarDatosUsuario(
+            nuip, primerNombre, segundoNombre, primerApellido, segundoApellido,
+            edad, correoElectronico, telefono, nombreRol
+        );
         
-        if (resultado.isExitoso()) {
-            // Obtener el usuario creado con el token generado
-            Usuario usuarioCreado = (Usuario) resultado.getDatos();
+        if (validacion.isExitoso()) {
+            // Si la validación es exitosa, crear el usuario
+            ResultadoOperacion resultado = controller.crearUsuario(
+                nuip, primerNombre, segundoNombre, primerApellido, segundoApellido,
+                edad, correoElectronico, telefono, nombreRol
+            );
+            setCursor(Cursor.getDefaultCursor());
             
-            // Mostrar credenciales generadas
-            String mensaje = "Usuario creado exitosamente.\n\n" +
-                           "Tipo: " + rol + "\n" +
-                           "Nombre: " + usuarioCreado.obtenerNombreCompleto();
-            
-            JOptionPane.showMessageDialog(this,
-                mensaje,
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE);
-            limpiarFormulario();
+            if (resultado.isExitoso()) {
+                // Obtener el usuario creado con el token generado
+                Usuario usuarioCreado = (Usuario) resultado.getDatos();
+                
+                // Mostrar credenciales generadas
+                String mensaje = "Usuario creado exitosamente.\n\n" +
+                               "Tipo: " + nombreRol + "\n" +
+                               "Nombre: " + usuarioCreado.obtenerNombreCompleto();
+                
+                JOptionPane.showMessageDialog(this,
+                    mensaje,
+                    "Éxito",
+                    JOptionPane.INFORMATION_MESSAGE);
+                limpiarFormulario();
+            } else {
+                mostrarError(resultado.getCampoError(), resultado.getMensaje());
+            }
         } else {
-            mostrarError(resultado.getCampoError(), resultado.getMensaje());
+            setCursor(Cursor.getDefaultCursor());
+            mostrarError(validacion.getCampoError(), validacion.getMensaje());
         }
     }
     

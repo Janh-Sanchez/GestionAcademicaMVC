@@ -7,7 +7,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Controlador para gestionar la asignación de profesores a grupos
@@ -26,65 +25,6 @@ public class GestionGruposController {
         this.repoProfesor = new ProfesorRepositorio(entityManager);
     }
     
-    // ============================================
-    // DTOs PARA TRANSFERENCIA DE DATOS
-    // ============================================
-    
-    /**
-     * DTO para transferir información de grupos a la UI
-     */
-    public static class GrupoDTO {
-        private Integer idGrupo;
-        private String nombreGrupo;
-        private String nombreGrado;
-        private int cantidadEstudiantes;
-        private boolean estaListo;
-        private boolean estaEnFormacion;
-        private ProfesorDTO profesorAsignado;
-        
-        public GrupoDTO(Integer idGrupo, String nombreGrupo, String nombreGrado,
-                       int cantidadEstudiantes, boolean estaListo, boolean estaEnFormacion,
-                       ProfesorDTO profesorAsignado) {
-            this.idGrupo = idGrupo;
-            this.nombreGrupo = nombreGrupo;
-            this.nombreGrado = nombreGrado;
-            this.cantidadEstudiantes = cantidadEstudiantes;
-            this.estaListo = estaListo;
-            this.estaEnFormacion = estaEnFormacion;
-            this.profesorAsignado = profesorAsignado;
-        }
-        
-        public Integer getIdGrupo() { return idGrupo; }
-        public String getNombreGrupo() { return nombreGrupo; }
-        public String getNombreGrado() { return nombreGrado; }
-        public int getCantidadEstudiantes() { return cantidadEstudiantes; }
-        public boolean isEstaListo() { return estaListo; }
-        public boolean isEstaEnFormacion() { return estaEnFormacion; }
-        public ProfesorDTO getProfesorAsignado() { return profesorAsignado; }
-    }
-    
-    /**
-     * DTO para transferir información de profesores a la UI
-     */
-    public static class ProfesorDTO {
-        private Integer idProfesor;
-        private String nombreCompleto;
-        private boolean tieneGrupoAsignado;
-        
-        public ProfesorDTO(Integer idProfesor, String nombreCompleto, 
-                          boolean tieneGrupoAsignado) {
-            this.idProfesor = idProfesor;
-            this.nombreCompleto = nombreCompleto;
-            this.tieneGrupoAsignado = tieneGrupoAsignado;
-        }
-        
-        public Integer getIdProfesor() { return idProfesor; }
-        public String getNombreCompleto() { return nombreCompleto; }
-        public boolean isTieneGrupoAsignado() { return tieneGrupoAsignado; }
-    }
-    
-    // Metodos publicos
-
     /**
      * Obtiene la lista completa de grupos con su información
      */
@@ -96,11 +36,7 @@ public class GestionGruposController {
                 return ResultadoOperacion.error("VACIA");
             }
             
-            List<GrupoDTO> gruposDTO = grupos.stream()
-                .map(this::convertirGrupoADTO)
-                .collect(Collectors.toList());
-            
-            return ResultadoOperacion.exitoConDatos("Lista obtenida", gruposDTO);
+            return ResultadoOperacion.exitoConDatos("Lista obtenida", grupos);
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -120,12 +56,8 @@ public class GestionGruposController {
                 return ResultadoOperacion.error("No hay profesores disponibles");
             }
             
-            List<ProfesorDTO> profesoresDTO = profesores.stream()
-                .map(this::convertirProfesorADTO)
-                .collect(Collectors.toList());
-            
             return ResultadoOperacion.exitoConDatos(
-                "Profesores disponibles", profesoresDTO);
+                "Profesores disponibles", profesores);
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -212,67 +144,5 @@ public class GestionGruposController {
             return ResultadoOperacion.error(
                 "Error al asignar profesor: " + e.getMessage());
         }
-    }
-    
-    /**
-     * Obtiene estadísticas de grupos y profesores
-     */
-    public ResultadoOperacion obtenerEstadisticas() {
-        try {
-            Long gruposListos = repoGrupo.contarGruposListosSinProfesor();
-            Long profesoresDisponibles = repoProfesor.contarProfesoresSinGrupo();
-            
-            Map<String, Long> estadisticas = new HashMap<>();
-            estadisticas.put("gruposListosSinProfesor", gruposListos);
-            estadisticas.put("profesoresDisponibles", profesoresDisponibles);
-            
-            return ResultadoOperacion.exitoConDatos("Estadísticas", estadisticas);
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResultadoOperacion.error("Error al obtener estadísticas");
-        }
-    }
-    
-    // ============================================
-    // MÉTODOS PRIVADOS DE CONVERSIÓN
-    // ============================================
-    
-    /**
-     * Convierte una entidad Grupo a DTO para la vista
-     */
-    private GrupoDTO convertirGrupoADTO(Grupo grupo) {
-        ProfesorDTO profesorDTO = null;
-        if (grupo.tieneProfesorAsignado()) {
-            Profesor profesor = grupo.getProfesor();
-            profesorDTO = new ProfesorDTO(
-                profesor.getIdUsuario(),
-                profesor.obtenerNombreCompleto(),
-                true
-            );
-        }
-        
-        int cantidadEstudiantes = grupo.getCantidadEstudiantes();
-        
-        return new GrupoDTO(
-            grupo.getIdGrupo(),
-            grupo.getNombreGrupo(),
-            grupo.getGrado() != null ? grupo.getGrado().getNombreGrado() : "Sin grado",
-            cantidadEstudiantes,  // Usamos el método ya implementado
-            grupo.estaListo(),
-            grupo.estaEnFormacion(),
-            profesorDTO
-        );
-    }
-    
-    /**
-     * Convierte una entidad Profesor a DTO para la vista
-     */
-    private ProfesorDTO convertirProfesorADTO(Profesor profesor) {
-        return new ProfesorDTO(
-            profesor.getIdUsuario(),
-            profesor.obtenerNombreCompleto(),
-            profesor.tieneGrupoAsignado()
-        );
     }
 }
