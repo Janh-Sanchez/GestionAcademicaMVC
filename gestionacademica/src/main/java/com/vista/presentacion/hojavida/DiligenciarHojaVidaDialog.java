@@ -40,7 +40,7 @@ public class DiligenciarHojaVidaDialog extends JDialog {
 
     public DiligenciarHojaVidaDialog(Frame parent, Acudiente acudiente, 
                                     GestionHojaVidaController controller) {
-        super(parent, "Completar Hojas de Vida - Obligatorio", false);
+        super(parent, "Completar Hojas de Vida - Obligatorio", true);
         this.controller = controller;
         this.estudiantes = new ArrayList<>(acudiente.getEstudiantes());
         

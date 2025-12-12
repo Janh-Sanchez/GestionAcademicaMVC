@@ -3,9 +3,10 @@ package com.vista.presentacion;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import com.aplicacion.JPAUtil;
+
 import com.controlador.LoginController;
-import com.modelo.dominio.*;
+import com.modelo.dominio.ResultadoOperacion;
+import com.modelo.dominio.Usuario;
 
 public class LoginFrame extends JFrame {
     private LoginController controller;
@@ -253,8 +254,7 @@ public class LoginFrame extends JFrame {
     }
 
     private void abrirRegistro() {
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        PreinscripcionFrame form = new PreinscripcionFrame(this, em);
+        PreinscripcionFrame form = new PreinscripcionFrame(this);
         form.addWindowListener(new WindowAdapter() {
             public void windowClosed(WindowEvent e) {
                 LoginFrame.this.setVisible(true);

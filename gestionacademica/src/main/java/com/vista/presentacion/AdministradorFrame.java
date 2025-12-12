@@ -5,7 +5,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.GestionUsuariosController;
 import com.modelo.dominio.Administrador;
 
@@ -26,9 +25,7 @@ public class AdministradorFrame extends JFrame {
 
     public AdministradorFrame(Administrador administrador) {
         this.administrador = administrador;
-        // Crear controlador con EntityManager
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        this.controller = new GestionUsuariosController(em);
+        this.controller = new GestionUsuariosController();
         inicializarComponentes();
     }
 

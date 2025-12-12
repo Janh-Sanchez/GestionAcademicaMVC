@@ -4,7 +4,6 @@ import java.awt.*;
 import java.util.List;
 import javax.swing.*;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.GestionObservadorController;
 import com.modelo.dominio.Estudiante;
 import com.modelo.dominio.Grupo;
@@ -22,8 +21,7 @@ public class ConsultarObservadorDirectivoPanel extends JFrame {
     private final Color CF = new Color(255, 243, 227);
 
     public ConsultarObservadorDirectivoPanel() {
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        this.controller = new GestionObservadorController(em);
+        this.controller = new GestionObservadorController();
         
         inicializarComponentes();
     }

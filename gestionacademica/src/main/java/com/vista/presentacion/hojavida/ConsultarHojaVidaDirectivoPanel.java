@@ -4,7 +4,6 @@ import java.awt.*;
 import java.util.List;
 import javax.swing.*;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.GestionHojaVidaController;
 import com.modelo.dominio.Estudiante;
 import com.modelo.dominio.Grupo;
@@ -22,8 +21,7 @@ public class ConsultarHojaVidaDirectivoPanel extends JFrame {
     private final Color CF = new Color(255, 243, 227);
 
     public ConsultarHojaVidaDirectivoPanel() {
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        this.controller = new GestionHojaVidaController(em);
+        this.controller = new GestionHojaVidaController();
         
         inicializarComponentes();
     }

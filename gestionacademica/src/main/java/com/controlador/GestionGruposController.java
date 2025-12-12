@@ -1,5 +1,6 @@
 package com.controlador;
 
+import com.aplicacion.JPAUtil;
 import com.modelo.dominio.*;
 import com.modelo.persistencia.repositorios.*;
 import jakarta.persistence.EntityManager;
@@ -19,8 +20,8 @@ public class GestionGruposController {
     private final GrupoRepositorio repoGrupo;
     private final ProfesorRepositorio repoProfesor;
     
-    public GestionGruposController(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    public GestionGruposController() {
+        this.entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
         this.repoGrupo = new GrupoRepositorio(entityManager);
         this.repoProfesor = new ProfesorRepositorio(entityManager);
     }
@@ -210,59 +211,6 @@ public class GestionGruposController {
             e.printStackTrace();
             return ResultadoOperacion.error(
                 "Error al asignar profesor: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Remueve la asignación de un profesor de su grupo
-     */
-    public ResultadoOperacion removerProfesorDeGrupo(Integer idGrupo) {
-        EntityTransaction transaction = entityManager.getTransaction();
-        
-        try {
-            transaction.begin();
-            
-            // 1. Validar y obtener grupo
-            Optional<Grupo> grupoOpt = repoGrupo.buscarPorIdConRelaciones(idGrupo);
-            if (grupoOpt.isEmpty()) {
-                transaction.rollback();
-                return ResultadoOperacion.error("Grupo no encontrado");
-            }
-            
-            Grupo grupo = grupoOpt.get();
-            
-            // 2. Validar que el grupo tenga profesor
-            if (!grupo.tieneProfesorAsignado()) {
-                transaction.rollback();
-                return ResultadoOperacion.error(
-                    "El grupo no tiene profesor asignado");
-            }
-            
-            Profesor profesor = grupo.getProfesor();
-            
-            // 3. Remover asignación usando lógica de dominio
-            ResultadoOperacion resultado = profesor.removerGrupo();
-            if (!resultado.isExitoso()) {
-                transaction.rollback();
-                return resultado;
-            }
-            
-            // 4. Persistir cambios
-            repoProfesor.guardar(profesor);
-            repoGrupo.guardar(grupo);
-            
-            transaction.commit();
-            
-            return ResultadoOperacion.exito(
-                "Profesor removido del grupo exitosamente");
-            
-        } catch (Exception e) {
-            if (transaction.isActive()) {
-                transaction.rollback();
-            }
-            e.printStackTrace();
-            return ResultadoOperacion.error(
-                "Error al remover profesor: " + e.getMessage());
         }
     }
     

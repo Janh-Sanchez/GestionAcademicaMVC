@@ -132,7 +132,7 @@ public class LoginController {
      */
     private void manejarLoginAcudiente(Acudiente acudiente) {
         // Verificar si tiene estudiantes y si las hojas de vida están completas
-        var hojaVidaController = new GestionHojaVidaController(entityManager);
+        var hojaVidaController = new GestionHojaVidaController();
         ResultadoOperacion resultado = hojaVidaController.verificarHojasVidaCompletas(acudiente);
         
         if (resultado.isExitoso()) {

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.aplicacion.JPAUtil;
 import com.modelo.dominio.*;
 import com.modelo.persistencia.repositorios.AcudienteRepositorio;
 import com.modelo.persistencia.repositorios.EstudianteRepositorio;
@@ -23,8 +24,8 @@ public class GestionHojaVidaController {
     private final GrupoRepositorio grupoRepo;
     private final AcudienteRepositorio acudienteRepo;
 
-    public GestionHojaVidaController(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    public GestionHojaVidaController() {
+        this.entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
         this.hojaVidaRepo = new HojaVidaRepositorio(entityManager);
         this.estudianteRepo = new EstudianteRepositorio(entityManager);
         this.grupoRepo = new GrupoRepositorio(entityManager);

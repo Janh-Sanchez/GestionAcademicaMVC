@@ -5,7 +5,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.GestionHojaVidaController;
 import com.controlador.GestionObservadorController;
 import com.controlador.GestionUsuariosController;
@@ -32,9 +31,7 @@ public class AcudienteFrame extends JFrame {
 
     public AcudienteFrame(Acudiente acudiente){
         this.acudiente = acudiente;
-        // Crear controlador con EntityManager
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        this.controller = new GestionUsuariosController(em);
+        this.controller = new GestionUsuariosController();
         inicializarComponentes();
     }
 
@@ -244,9 +241,7 @@ public class AcudienteFrame extends JFrame {
             return;
         }
         
-        // Crear EntityManager y controlador
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        var controller = new GestionHojaVidaController(em);
+        var controller = new GestionHojaVidaController();
         
         // Abrir diálogo de CONSULTA (no edición)
         ConsultarHojaVidaDialog dialogo = new ConsultarHojaVidaDialog(
@@ -283,9 +278,7 @@ public class AcudienteFrame extends JFrame {
             return;
         }
         
-        // Crear EntityManager y controlador
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        var controller = new GestionObservadorController(em);
+        var controller = new GestionObservadorController();
         
         // El acudiente solo puede consultar, no modificar
         ConsultarObservadorDialog dialogo = new ConsultarObservadorDialog(

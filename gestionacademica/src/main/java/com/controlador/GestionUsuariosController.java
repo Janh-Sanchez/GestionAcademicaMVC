@@ -3,6 +3,7 @@ package com.controlador;
 import com.modelo.dominio.*;
 import com.modelo.dtos.UsuarioDTO;
 import com.modelo.persistencia.repositorios.*;
+import com.aplicacion.JPAUtil;
 import com.modelo.ServicioCorreo;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
@@ -14,8 +15,8 @@ public class GestionUsuariosController {
     private final RolRepositorio rolRepositorio;
     private final EntityManager entityManager;
     
-    public GestionUsuariosController(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    public GestionUsuariosController() {
+        this.entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
         this.usuarioRepositorio = new UsuarioRepositorio(entityManager);
         this.rolRepositorio = new RolRepositorio(entityManager);
     }

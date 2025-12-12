@@ -135,10 +135,6 @@ public class HojaVida {
         }
     }
 
-    // ============================================
-    // GETTERS Y SETTERS
-    // ============================================
-
     public Integer getIdHojaVida() {
         return idHojaVida;
     }

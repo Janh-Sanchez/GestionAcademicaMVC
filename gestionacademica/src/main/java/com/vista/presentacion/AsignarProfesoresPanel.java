@@ -1,6 +1,5 @@
 package com.vista.presentacion;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.GestionGruposController;
 import com.controlador.GestionGruposController.GrupoDTO;
 import com.controlador.GestionGruposController.ProfesorDTO;
@@ -33,8 +32,7 @@ public class AsignarProfesoresPanel extends JFrame {
     private List<ProfesorDTO> profesoresDisponibles;
     
     public AsignarProfesoresPanel() {
-        this.controlador = new GestionGruposController(
-            JPAUtil.getEntityManagerFactory().createEntityManager());
+        this.controlador = new GestionGruposController();
         inicializarComponentes();
         cargarDatos();
     }

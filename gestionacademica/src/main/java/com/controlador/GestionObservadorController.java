@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import com.aplicacion.JPAUtil;
 import com.modelo.dominio.*;
 import com.modelo.persistencia.repositorios.EstudianteRepositorio;
 import com.modelo.persistencia.repositorios.GrupoRepositorio;
@@ -23,8 +24,8 @@ public class GestionObservadorController {
     private final EstudianteRepositorio estudianteRepo;
     private final GrupoRepositorio grupoRepo;
 
-    public GestionObservadorController(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    public GestionObservadorController() {
+        this.entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
         this.observadorRepo = new ObservadorRepositorio(entityManager);
         this.observacionRepo = new ObservacionRepositorio(entityManager);
         this.estudianteRepo = new EstudianteRepositorio(entityManager);

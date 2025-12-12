@@ -4,7 +4,6 @@ import java.awt.*;
 import java.util.Set;
 import javax.swing.*;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.GestionObservadorController;
 import com.modelo.dominio.Estudiante;
 import com.modelo.dominio.Grupo;
@@ -26,8 +25,7 @@ public class SeleccionarEstudianteObservadorPanel extends JFrame {
 
     public SeleccionarEstudianteObservadorPanel(Profesor profesor) {
         this.profesor = profesor;
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        this.controller = new GestionObservadorController(em);
+        this.controller = new GestionObservadorController();
         
         inicializarComponentes();
     }

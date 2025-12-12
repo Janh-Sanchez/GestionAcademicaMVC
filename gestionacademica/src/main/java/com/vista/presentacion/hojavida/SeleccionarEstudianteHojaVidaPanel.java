@@ -4,7 +4,6 @@ import java.awt.*;
 import java.util.Set;
 import javax.swing.*;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.GestionHojaVidaController;
 import com.modelo.dominio.Estudiante;
 import com.modelo.dominio.Grupo;
@@ -26,8 +25,7 @@ public class SeleccionarEstudianteHojaVidaPanel extends JFrame {
 
     public SeleccionarEstudianteHojaVidaPanel(Profesor profesor) {
         this.profesor = profesor;
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        this.controller = new GestionHojaVidaController(em);
+        this.controller = new GestionHojaVidaController();
         
         inicializarComponentes();
     }

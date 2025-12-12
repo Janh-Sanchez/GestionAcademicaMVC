@@ -1,12 +1,8 @@
 package com.vista.presentacion;
 
 import com.controlador.PreinscripcionController;
-import com.modelo.dominio.Acudiente;
 import com.modelo.dominio.ResultadoOperacion;
-import com.modelo.dtos.AcudienteDTO;
-import com.modelo.dtos.EstudianteDTO;
 
-import jakarta.persistence.EntityManager;
 import javax.swing.*;
 import java.awt.*;
 import java.util.*;
@@ -37,16 +33,11 @@ public class PreinscripcionFrame extends JDialog {
     private static final Color BORDER_ERROR = new Color(220, 53, 69);
     
     // Constructores
-    public PreinscripcionFrame(JFrame padre, EntityManager entityManager) {
+    public PreinscripcionFrame(JFrame padre) {
         super(padre, "Formulario de preinscripción", true); // Diálogo modal
-        this.controlador = new PreinscripcionController(entityManager);
+        this.controlador = new PreinscripcionController();
         inicializarDatos();
         inicializarUI();
-    }
-    
-    // Constructor alternativo por compatibilidad
-    public PreinscripcionFrame(EntityManager entityManager) {
-        this((JFrame) null, entityManager);
     }
     
     private void inicializarDatos() {
@@ -333,22 +324,24 @@ public class PreinscripcionFrame extends JDialog {
         manejarCancelacion();
     }
     
-    /**
-     * Maneja el evento de continuar
-     */
-    private void manejarContinuar() {
+        private void manejarContinuar() {
         limpiarErroresVisuales();
         
-        // 1. CAPTURAR datos del formulario (responsabilidad de la VISTA)
+        // 1. CAPTURAR datos del formulario (responsabilidad VISTA)
         Map<String, String> datosAcudiente = capturarDatosAcudiente();
         Map<String, String> datosEstudiante = capturarDatosEstudiante();
         
-        // 2. Crear DTOs para enviar al CONTROLADOR
-        AcudienteDTO dtoAcudiente = crearDTOAcudiente(datosAcudiente);
-        EstudianteDTO dtoEstudiante = crearDTOEstudiante(datosEstudiante);
-        
-        // 3. ENVIAR al CONTROLADOR para validar
-        ResultadoOperacion resultadoAcudiente = controlador.validarAcudiente(dtoAcudiente);
+        // 2. ENVIAR datos primitivos al CONTROLADOR para validación
+        ResultadoOperacion resultadoAcudiente = controlador.validarDatosAcudiente(
+            datosAcudiente.get("primerNombre"),
+            datosAcudiente.get("segundoNombre"),
+            datosAcudiente.get("primerApellido"),
+            datosAcudiente.get("segundoApellido"),
+            datosAcudiente.get("nuip"),
+            datosAcudiente.get("edad"),
+            datosAcudiente.get("correoElectronico"),
+            datosAcudiente.get("telefono")
+        );
         
         if (!resultadoAcudiente.isExitoso()) {
             mostrarErrorEnCampo(resultadoAcudiente.getCampoError(), 
@@ -356,7 +349,15 @@ public class PreinscripcionFrame extends JDialog {
             return;
         }
         
-        ResultadoOperacion resultadoEstudiante = controlador.validarEstudiante(dtoEstudiante);
+        ResultadoOperacion resultadoEstudiante = controlador.validarDatosEstudiante(
+            datosEstudiante.get("primerNombre"),
+            datosEstudiante.get("segundoNombre"),
+            datosEstudiante.get("primerApellido"),
+            datosEstudiante.get("segundoApellido"),
+            datosEstudiante.get("edad"),
+            datosEstudiante.get("nuip"),
+            datosEstudiante.get("gradoAspira")
+        );
         
         if (!resultadoEstudiante.isExitoso()) {
             mostrarErrorEnCampo("est_" + resultadoEstudiante.getCampoError(), 
@@ -364,7 +365,7 @@ public class PreinscripcionFrame extends JDialog {
             return;
         }
         
-        // 4. Si todo es válido, guardar temporalmente y continuar
+        // 3. Guardar datos capturados (como primitivos)
         datosAcudienteCapturados = datosAcudiente;
         
         if (datosEstudiantesCapturados.isEmpty()) {
@@ -377,7 +378,7 @@ public class PreinscripcionFrame extends JDialog {
     }
     
     /**
-     * Captura los datos del acudiente del formulario
+     * Captura datos del acudiente - SOLO datos primitivos
      */
     private Map<String, String> capturarDatosAcudiente() {
         Map<String, String> datos = new HashMap<>();
@@ -395,7 +396,7 @@ public class PreinscripcionFrame extends JDialog {
     }
     
     /**
-     * Captura los datos del estudiante del formulario
+     * Captura datos del estudiante - SOLO datos primitivos
      */
     private Map<String, String> capturarDatosEstudiante() {
         Map<String, String> datos = new HashMap<>();
@@ -427,34 +428,81 @@ public class PreinscripcionFrame extends JDialog {
     }
     
     /**
-     * Crea un DTO de acudiente desde el mapa de datos
+     * Procesa estudiante adicional - SOLO captura datos UI
      */
-    private AcudienteDTO crearDTOAcudiente(Map<String, String> datos) {
-        return new AcudienteDTO(
-            datos.get("nuip"),
-            datos.get("primerNombre"),
-            datos.get("segundoNombre"),
-            datos.get("primerApellido"),
-            datos.get("segundoApellido"),
-            parseIntegerSafe(datos.get("edad")),
-            datos.get("correoElectronico"),
-            datos.get("telefono")
+    private boolean procesarEstudianteAdicional(JDialog dialog, JComboBox<String> cmbGrado) {
+        limpiarErroresAdicionales();
+        
+        // Capturar datos del formulario como primitivos
+        Map<String, String> datosEstudiante = new HashMap<>();
+        
+        for (Map.Entry<String, JTextField> entry : mapaCamposActual.entrySet()) {
+            String nombre = entry.getKey();
+            JTextField txt = entry.getValue();
+            datosEstudiante.put(nombre, txt.getText().trim());
+        }
+        
+        datosEstudiante.put("gradoAspira", cmbGrado.getSelectedItem().toString());
+        
+        // 🔴 Validar duplicados localmente (solo en datos capturados)
+        String nuevoNuip = datosEstudiante.get("nuip");
+        for (Map<String, String> estExistente : datosEstudiantesCapturados) {
+            if (nuevoNuip.equals(estExistente.get("nuip"))) {
+                mostrarErrorEnCampoAdicional("nuip", 
+                    "Ya has registrado un estudiante con este NUIP en esta preinscripción");
+                return false;
+            }
+        }
+        
+        // Validar con el controlador (datos primitivos)
+        ResultadoOperacion resultado = controlador.validarDatosEstudiante(
+            datosEstudiante.get("primerNombre"),
+            datosEstudiante.get("segundoNombre"),
+            datosEstudiante.get("primerApellido"),
+            datosEstudiante.get("segundoApellido"),
+            datosEstudiante.get("edad"),
+            datosEstudiante.get("nuip"),
+            datosEstudiante.get("gradoAspira")
         );
+        
+        if (!resultado.isExitoso()) {
+            mostrarErrorEnCampoAdicional(resultado.getCampoError(), resultado.getMensaje());
+            return false;
+        }
+        
+        // Agregar a la lista de estudiantes (como Mapas)
+        datosEstudiantesCapturados.add(datosEstudiante);
+        
+        JOptionPane.showMessageDialog(dialog,
+            "Estudiante agregado exitosamente.\n" +
+            "Estudiantes registrados: " + datosEstudiantesCapturados.size() + 
+            " de " + controlador.obtenerMaximoEstudiantes(),
+            "Éxito",
+            JOptionPane.INFORMATION_MESSAGE);
+        
+        return true;
     }
     
     /**
-     * Crea un DTO de estudiante desde el mapa de datos
+     * Envía la preinscripción completa - SOLO pasa datos primitivos
      */
-    private EstudianteDTO crearDTOEstudiante(Map<String, String> datos) {
-        return new EstudianteDTO(
-            datos.get("primerNombre"),
-            datos.get("segundoNombre"),
-            datos.get("primerApellido"),
-            datos.get("segundoApellido"),
-            parseIntegerSafe(datos.get("edad")),
-            datos.get("nuip"),
-            datos.get("gradoAspira")
+    private void enviarPreinscripcion() {
+        // Pasar datos primitivos al controlador
+        ResultadoOperacion resultado = controlador.registrarPreinscripcion(
+            datosAcudienteCapturados,
+            datosEstudiantesCapturados
         );
+        
+        // MOSTRAR resultado al usuario
+        if (resultado.isExitoso()) {
+            mostrarMensajeExito(
+                "¡Tu formulario fue enviado correctamente!",
+                "Por favor espera hasta que la institución se comunique contigo"
+            );
+            limpiarDatosTemporales();
+        } else {
+            mostrarMensajeError("Error", resultado.getMensaje());
+        }
     }
     
     // ============================================
@@ -462,7 +510,9 @@ public class PreinscripcionFrame extends JDialog {
     // ============================================
     private void mostrarOpcionesPostFormulario() {
         int cantidadEstudiantes = datosEstudiantesCapturados.size();
-        boolean maximoAlcanzado = cantidadEstudiantes >= Acudiente.MAX_ESTUDIANTES;
+
+        boolean maximoAlcanzado = !controlador.puedeAgregarMasEstudiantes(cantidadEstudiantes);
+        int maximoPermitido = controlador.obtenerMaximoEstudiantes();
         
         String mensaje;
         String[] opciones;
@@ -470,7 +520,7 @@ public class PreinscripcionFrame extends JDialog {
         if (maximoAlcanzado) {
             mensaje = "<html><center><h3>¡Ha alcanzado el límite máximo!</h3>" +
                     "Estudiantes registrados: <b>" + cantidadEstudiantes + "</b><br>" +
-                    "Límite: " + Acudiente.MAX_ESTUDIANTES + " estudiantes<br><br>" +
+                    "Límite: " + maximoPermitido + " estudiantes<br><br>" +
                     "¿Qué desea hacer?</center></html>";
             opciones = new String[]{"Volver", "Enviar"};
         } else {
@@ -512,12 +562,13 @@ public class PreinscripcionFrame extends JDialog {
      * Muestra formulario para agregar estudiante adicional
      */
     private void mostrarFormularioEstudianteAdicional() {
+        int maximoPermitido = controlador.obtenerMaximoEstudiantes();
         int numeroEstudiante = datosEstudiantesCapturados.size() + 1;
         
         // Verificar límite
-        if (numeroEstudiante > Acudiente.MAX_ESTUDIANTES) {
+        if (numeroEstudiante > maximoPermitido) {
             JOptionPane.showMessageDialog(null,
-                "Ha alcanzado el límite máximo de " + Acudiente.MAX_ESTUDIANTES + " estudiantes",
+                "Ha alcanzado el límite máximo de " + maximoPermitido + " estudiantes",
                 "Límite alcanzado",
                 JOptionPane.WARNING_MESSAGE);
             mostrarOpcionesPostFormulario();
@@ -537,7 +588,7 @@ public class PreinscripcionFrame extends JDialog {
         
         // Título
         JLabel lblTitulo = new JLabel(
-            "<html><h3>Estudiante " + numeroEstudiante + " de " + Acudiente.MAX_ESTUDIANTES + "</h3>" +
+            "<html><h3>Estudiante " + numeroEstudiante + " de " + maximoPermitido + "</h3>" +
             "Complete los datos del estudiante adicional</html>"
         );
         gbc.gridx = 0;
@@ -660,57 +711,6 @@ public class PreinscripcionFrame extends JDialog {
     }
 
     /**
-     * Procesa el estudiante adicional
-     */
-    private boolean procesarEstudianteAdicional(JDialog dialog, JComboBox<String> cmbGrado) {
-        limpiarErroresAdicionales();
-        
-        // Capturar datos del formulario
-        Map<String, String> datosEstudiante = new HashMap<>();
-        
-        for (Map.Entry<String, JTextField> entry : mapaCamposActual.entrySet()) {
-            String nombre = entry.getKey();
-            JTextField txt = entry.getValue();
-            datosEstudiante.put(nombre, txt.getText().trim());
-        }
-        
-        datosEstudiante.put("gradoAspira", cmbGrado.getSelectedItem().toString());
-        
-        // 🔴 VALIDAR DUPLICADOS CON ESTUDIANTES YA CAPTURADOS
-        String nuevoNuip = datosEstudiante.get("nuip");
-        for (Map<String, String> estExistente : datosEstudiantesCapturados) {
-            if (nuevoNuip.equals(estExistente.get("nuip"))) {
-                mostrarErrorEnCampoAdicional("nuip", 
-                    "Ya has registrado un estudiante con este NUIP en esta preinscripción");
-                return false;
-            }
-        }
-        
-        // Crear DTO para validación
-        EstudianteDTO dtoEstudiante = crearDTOEstudianteDesdeMapa(datosEstudiante);
-        
-        // Validar con el controlador
-        ResultadoOperacion resultado = controlador.validarEstudiante(dtoEstudiante);
-        
-        if (!resultado.isExitoso()) {
-            mostrarErrorEnCampoAdicional(resultado.getCampoError(), resultado.getMensaje());
-            return false;
-        }
-        
-        // Agregar a la lista de estudiantes
-        datosEstudiantesCapturados.add(datosEstudiante);
-        
-        JOptionPane.showMessageDialog(dialog,
-            "Estudiante agregado exitosamente.\n" +
-            "Estudiantes registrados: " + datosEstudiantesCapturados.size() + 
-            " de " + Acudiente.MAX_ESTUDIANTES,
-            "Éxito",
-            JOptionPane.INFORMATION_MESSAGE);
-        
-        return true;
-    }
-
-    /**
      * Confirma la cancelación
      */
     private boolean confirmarCancelacion(JDialog dialog) {
@@ -786,21 +786,6 @@ public class PreinscripcionFrame extends JDialog {
     }
 
     /**
-     * Crea DTO de estudiante desde mapa de datos
-     */
-    private EstudianteDTO crearDTOEstudianteDesdeMapa(Map<String, String> datos) {
-        return new EstudianteDTO(
-            datos.get("primerNombre"),
-            datos.get("segundoNombre"),
-            datos.get("primerApellido"),
-            datos.get("segundoApellido"),
-            parseIntegerSafe(datos.get("edad")),
-            datos.get("nuip"),
-            datos.get("gradoAspira")
-        );
-    }
-
-    /**
      * Muestra advertencia al intentar salir
      */
     private void mostrarAdvertenciaSalir() {
@@ -822,36 +807,6 @@ public class PreinscripcionFrame extends JDialog {
             mostrarOpcionesPostFormulario();
         } else {
             limpiarDatosTemporales();
-        }
-    }
-    
-    /**
-     * Envía la preinscripción completa al controlador
-     */
-    private void enviarPreinscripcion() {
-        // 1. Crear DTO del acudiente
-        AcudienteDTO dtoAcudiente = crearDTOAcudiente(datosAcudienteCapturados);
-        
-        // 2. Crear lista de DTOs de estudiantes
-        List<EstudianteDTO> dtosEstudiantes = new ArrayList<>();
-        for (Map<String, String> datosEst : datosEstudiantesCapturados) {
-            dtosEstudiantes.add(crearDTOEstudiante(datosEst));
-        }
-        
-        // 3. ENVIAR al CONTROLADOR
-        ResultadoOperacion resultado = controlador.registrarPreinscripcion(
-            dtoAcudiente, dtosEstudiantes
-        );
-        
-        // 4. MOSTRAR resultado al usuario
-        if (resultado.isExitoso()) {
-            mostrarMensajeExito(
-                "¡Tu formulario fue enviado correctamente!",
-                "Por favor espera hasta que la institución se comunique contigo"
-            );
-            limpiarDatosTemporales();
-        } else {
-            mostrarMensajeError("Error", resultado.getMensaje());
         }
     }
     
@@ -964,19 +919,5 @@ public class PreinscripcionFrame extends JDialog {
         camposActuales.clear();
         etiquetasActuales.clear();
         etiquetasErrorActuales.clear();
-    }
-    
-    /**
-     * Convierte String a Integer de forma segura
-     */
-    private Integer parseIntegerSafe(String valor) {
-        if (valor == null || valor.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            return Integer.parseInt(valor.trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 }

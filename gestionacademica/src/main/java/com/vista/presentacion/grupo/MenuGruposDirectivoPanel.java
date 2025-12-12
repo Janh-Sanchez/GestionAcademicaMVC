@@ -1,6 +1,9 @@
 package com.vista.presentacion.grupo;
 
 import javax.swing.*;
+
+import com.vista.presentacion.AsignarProfesoresPanel;
+
 import java.awt.*;
 
 /**
@@ -177,8 +180,7 @@ public class MenuGruposDirectivoPanel extends JFrame {
     
     private void abrirAsignarProfesores() {
         // Abrir panel para asignar profesores (funcionalidad original)
-        com.vista.presentacion.AsignarProfesoresPanel panel = 
-            new com.vista.presentacion.AsignarProfesoresPanel();
+        AsignarProfesoresPanel panel = new AsignarProfesoresPanel();
         panel.setVisible(true);
         dispose(); // Cerrar este menú intermedio
     }

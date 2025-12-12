@@ -23,10 +23,6 @@ public class Profesor extends Usuario{
         super();
     }
 
-    // ============================================
-    // MÉTODOS DE NEGOCIO (LÓGICA DE DOMINIO)
-    // ============================================
-    
     /**
      * Verifica si el profesor tiene un grupo asignado
      */
@@ -62,22 +58,6 @@ public class Profesor extends Usuario{
         grupo.setProfesor(this);
         
         return ResultadoOperacion.exito("Grupo asignado correctamente");
-    }
-
-    /**
-     * Remueve la asignación del grupo actual
-     * Creo que esto se podria eliminar
-     */
-    public ResultadoOperacion removerGrupo(){
-        if (!tieneGrupoAsignado()) {
-            return ResultadoOperacion.error("El profesor no tiene grupo asignado");
-        }
-        
-        Grupo grupoAnterior = this.grupoAsignado;
-        this.grupoAsignado = null;
-        grupoAnterior.setProfesor(null);
-        
-        return ResultadoOperacion.exito("Grupo removido correctamente");
     }
 
     @Override
