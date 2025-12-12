@@ -150,14 +150,6 @@ public class Preinscripcion {
         }
     }
 
-    /**
-     * Actualiza el estado de la preinscripción basado en el estado de sus estudiantes
-     * Reglas de negocio CORREGIDAS:
-     * 1. TODOS rechazados → Preinscripción Rechazada Y Acudiente Rechazado
-     * 2. Al menos 1 aprobado y CERO pendientes → Preinscripción Aprobada Y Acudiente Aprobado
-     * 3. Pendientes > 0 → Preinscripción Pendiente (a menos que ya esté aprobada)
-     * 4. Si hay rechazados y aprobados pero CERO pendientes → Preinscripción Aprobada (al menos uno aprobado)
-     */
     public void actualizarEstadoPreinscripcion() throws DomainException {
         if (this.estudiantes == null || this.estudiantes.isEmpty()) {
             throw new DomainException("La preinscripción no tiene estudiantes");

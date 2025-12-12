@@ -41,7 +41,6 @@ public class Grado{
     }
 
     public Grado() {
-        //TODO Auto-generated constructor stub
     }
 
     public Integer getIdGrado() {
@@ -81,7 +80,7 @@ public class Grado{
         grupos.add(grupo);
     }
 
-    public void eliminarGrupo(Grupo grupo){
-        grupos.remove(grupo);
+    public void añadirBibliotecaLogros(BibliotecaLogros bibliotecaLogro){
+        bibliotecaLogros.add(bibliotecaLogro);
     }
 }

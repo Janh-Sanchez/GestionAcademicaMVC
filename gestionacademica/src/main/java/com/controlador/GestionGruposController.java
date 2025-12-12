@@ -117,7 +117,8 @@ public class GestionGruposController {
             }
             
             // 5. Realizar asignación usando lógica de dominio
-            ResultadoOperacion resultadoAsignacion = profesor.asignarGrupo(grupo);
+            
+            ResultadoOperacion resultadoAsignacion = asignarGrupo(grupo, profesor);
             if (!resultadoAsignacion.isExitoso()) {
                 transaction.rollback();
                 return resultadoAsignacion;
@@ -144,5 +145,35 @@ public class GestionGruposController {
             return ResultadoOperacion.error(
                 "Error al asignar profesor: " + e.getMessage());
         }
+    }
+
+        /**
+     * Asigna un grupo al profesor con validación de negocio
+     * Regla: Un profesor solo puede tener un grupo asignado
+     */
+    public ResultadoOperacion asignarGrupo(Grupo grupo, Profesor profesor){
+            if (grupo == null) {
+                return ResultadoOperacion.error("El grupo no puede ser nulo");
+            }
+            
+            if (profesor.tieneGrupoAsignado()) {
+                return ResultadoOperacion.error(
+                    "El profesor ya tiene asignado el grupo: " + profesor.getGrupoAsignado().getNombreGrupo());
+            }
+            
+            if (!grupo.estaListo()) {
+                return ResultadoOperacion.error(
+                    "El grupo " + grupo.getNombreGrupo() + " aún está en formación");
+            }
+            
+            if (grupo.tieneProfesorAsignado()) {
+                return ResultadoOperacion.error(
+                    "El grupo ya tiene un profesor asignado");
+            }
+            
+            profesor.setGrupo(grupo);
+            grupo.setProfesor(profesor);
+            
+            return ResultadoOperacion.exito("Grupo asignado correctamente");
     }
 }

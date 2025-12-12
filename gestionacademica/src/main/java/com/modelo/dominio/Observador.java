@@ -26,7 +26,6 @@ public class Observador {
     private Estudiante estudiante;
 
     @OneToMany(mappedBy = "observador", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-
     private Set<Observacion> observaciones;
 
     public Observador(Integer idObservador, Estudiante estudiante, Set<Observacion> observaciones){

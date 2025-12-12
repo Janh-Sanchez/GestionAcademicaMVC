@@ -91,14 +91,6 @@ public class Grupo {
     }
 
     /**
-     * Verifica si el grupo puede activarse (tiene suficientes estudiantes)
-     * Esto es diferente de si ya está activo
-     */
-    public boolean puedeActivar() {
-        return tieneEstudiantesSuficientes();
-    }
-
-    /**
      * Activa el grupo si tiene suficientes estudiantes
      * @return true si se pudo activar, false si no cumple los requisitos
      */

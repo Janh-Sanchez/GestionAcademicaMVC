@@ -48,8 +48,7 @@ public class ConsultarGruposController {
                 new ArrayList<>(grupoCompleto.getEstudiantes())
             );
             
-            // Crear DTO con la información necesaria
-            DatosGrupoConsulta datos = new DatosGrupoConsulta(
+                DatosGrupoConsulta datos = new DatosGrupoConsulta(
                 grupoCompleto,
                 estudiantesOrdenados
             );

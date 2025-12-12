@@ -49,7 +49,7 @@ public class Estudiante {
     private Acudiente acudiente;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "grad_aspira", referencedColumnName = "id_grado")
+    @JoinColumn(name = "grado_aspira", referencedColumnName = "id_grado")
     private Grado gradoAspira;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -67,9 +67,6 @@ public class Estudiante {
     @OneToMany(mappedBy = "estudiante", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<LogroEstudiante> logrosCalificados;
 
-    @OneToMany(mappedBy = "estudiante", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<Boletin> boletines;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_preinscripcion", referencedColumnName = "id_preinscripcion")
     private Preinscripcion preinscripcion;
@@ -81,7 +78,7 @@ public class Estudiante {
                      String primerApellido, String segundoApellido, String nuip, 
                      Integer edad, Estado estado, Acudiente acudiente, Grado gradoAspira, 
                      Grupo grupo, HojaVida hojaDeVida, Observador observador, 
-                     Set<LogroEstudiante> logrosCalificados, Set<Boletin> boletines) {
+                     Set<LogroEstudiante> logrosCalificados) {
         this.idEstudiante = idEstudiante;
         this.primerNombre = primerNombre;
         this.segundoNombre = segundoNombre;
@@ -96,7 +93,6 @@ public class Estudiante {
         this.hojaDeVida = hojaDeVida;
         this.observador = observador;
         this.logrosCalificados = logrosCalificados;
-        this.boletines = boletines;
     }
 
     // Validaciones de dominio
@@ -237,11 +233,6 @@ public class Estudiante {
         return nombre.toString();
     }
 
-
-    public void agregarBoletin(Boletin boletin) {
-        boletines.add(boletin);
-    }
-
     public void agregarLogrosEstudiante(LogroEstudiante logroCalificado) {
         logrosCalificados.add(logroCalificado);
     }
@@ -295,6 +286,4 @@ public class Estudiante {
         this.logrosCalificados = logrosCalificados; 
     }
     
-    public Set<Boletin> getBoletines() { return boletines; }
-    public void setBoletines(Set<Boletin> boletines) { this.boletines = boletines; }
 }

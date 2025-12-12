@@ -174,22 +174,6 @@ public class TokenUsuario {
         return credencialesCorrectas;
     }
 
-    /**
-     * Valida un nombre de usuario
-     */
-    public static ResultadoValidacionDominio validarUsuario(
-            String nombre, String nombreCampo, boolean esObligatorio) {
-        
-        if (nombre == null || nombre.trim().isEmpty()) {
-            if (esObligatorio) {
-                return ResultadoValidacionDominio.error(nombreCampo, 
-                    "Campo obligatorio");
-            }
-            return ResultadoValidacionDominio.exito();
-        }
-        return ResultadoValidacionDominio.exito();
-    }
-
     // ============================================
     // GETTERS Y SETTERS
     // ============================================

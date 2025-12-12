@@ -28,10 +28,6 @@ public class LogroEstudiante {
     private Estudiante estudiante;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "boletin", referencedColumnName = "id_boletin")
-    private Boletin boletin;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "logro", referencedColumnName = "id_logro")
     private Logro logro;
 
@@ -39,12 +35,10 @@ public class LogroEstudiante {
     @JoinColumn(name = "profesor", referencedColumnName = "id_usuario")
     private Profesor profesor;
 
-    public LogroEstudiante(Integer idLogroEstudiante, LocalDate fechaCalificacion, Estudiante estudiante,
-            Boletin boletin, Logro logro, Profesor profesor) {
+    public LogroEstudiante(Integer idLogroEstudiante, LocalDate fechaCalificacion, Estudiante estudiante, Logro logro, Profesor profesor) {
         this.idLogroEstudiante = idLogroEstudiante;
         this.fechaCalificacion = fechaCalificacion;
         this.estudiante = estudiante;
-        this.boletin = boletin;
         this.logro = logro;
         this.profesor = profesor;
     }
@@ -73,14 +67,6 @@ public class LogroEstudiante {
 
     public void setEstudiante(Estudiante estudiante) {
         this.estudiante = estudiante;
-    }
-
-    public Boletin getBoletin() {
-        return boletin;
-    }
-
-    public void setBoletin(Boletin boletin) {
-        this.boletin = boletin;
     }
 
     public Logro getLogro() {
