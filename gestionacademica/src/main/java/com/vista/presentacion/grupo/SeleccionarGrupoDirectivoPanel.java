@@ -1,6 +1,5 @@
 package com.vista.presentacion.grupo;
 
-import com.aplicacion.JPAUtil;
 import com.controlador.ConsultarGruposController;
 import com.modelo.dominio.Grupo;
 import com.modelo.dominio.ResultadoOperacion;
@@ -24,8 +23,7 @@ public class SeleccionarGrupoDirectivoPanel extends JFrame {
     private List<Grupo> grupos;
 
     public SeleccionarGrupoDirectivoPanel() {
-        var em = JPAUtil.getEntityManagerFactory().createEntityManager();
-        this.controller = new ConsultarGruposController(em);
+        this.controller = new ConsultarGruposController();
         
         inicializarComponentes();
         cargarGrupos();

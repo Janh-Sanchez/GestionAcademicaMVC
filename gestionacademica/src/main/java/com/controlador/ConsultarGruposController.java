@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.aplicacion.JPAUtil;
 import com.modelo.dominio.*;
 import com.modelo.persistencia.repositorios.GrupoRepositorio;
 
@@ -16,9 +17,11 @@ import com.modelo.persistencia.repositorios.GrupoRepositorio;
  * Responsabilidad: Coordinar operaciones de consulta de grupos y estudiantes
  */
 public class ConsultarGruposController {
+    private final EntityManager entityManager;
     private final GrupoRepositorio grupoRepo;
 
-    public ConsultarGruposController(EntityManager entityManager) {
+    public ConsultarGruposController() {
+        this.entityManager = JPAUtil.getEntityManagerFactory().createEntityManager();
         this.grupoRepo = new GrupoRepositorio(entityManager);
     }
 

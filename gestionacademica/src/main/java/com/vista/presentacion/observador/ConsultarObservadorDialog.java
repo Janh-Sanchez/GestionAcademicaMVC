@@ -5,7 +5,11 @@ import java.time.format.DateTimeFormatter;
 import javax.swing.*;
 
 import com.controlador.GestionObservadorController;
-import com.modelo.dominio.*;
+import com.modelo.dominio.Estudiante;
+import com.modelo.dominio.Observacion;
+import com.modelo.dominio.Observador;
+import com.modelo.dominio.Profesor;
+import com.modelo.dominio.ResultadoOperacion;
 
 /**
  * Diálogo para consultar el observador de un estudiante

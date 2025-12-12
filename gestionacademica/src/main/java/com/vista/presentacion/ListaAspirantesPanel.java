@@ -1,8 +1,6 @@
 package com.vista.presentacion;
 
 import com.controlador.GestionAspirantesController;
-import com.controlador.GestionAspirantesController.AspiranteDTO;
-import com.controlador.GestionAspirantesController.EstudianteDTO;
 import com.modelo.dominio.ResultadoOperacion;
 
 import javax.swing.*;
@@ -10,10 +8,10 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Panel para mostrar la lista de aspirantes y aprobar/rechazar
- * Implementa RF 3.4 - Aprobar o rechazar aspirante
  * VISTA en arquitectura MVC - se comunica únicamente con el Controlador
  */
 public class ListaAspirantesPanel extends JFrame {
@@ -25,7 +23,6 @@ public class ListaAspirantesPanel extends JFrame {
     private final Color VERDE = new Color(76, 175, 80);
     private final Color ROJO = new Color(244, 67, 54);
     
-    // Controlador MVC - única dependencia de la vista
     private GestionAspirantesController controlador;
     private JPanel panelContenido;
     private JScrollPane scrollPane;
@@ -45,10 +42,8 @@ public class ListaAspirantesPanel extends JFrame {
         JPanel panelPrincipal = new JPanel(new BorderLayout());
         panelPrincipal.setBackground(CF);
         
-        // Panel superior con título y botón volver
         panelPrincipal.add(crearPanelSuperior(), BorderLayout.NORTH);
         
-        // Panel central con lista de aspirantes
         panelContenido = new JPanel();
         panelContenido.setLayout(new BoxLayout(panelContenido, BoxLayout.Y_AXIS));
         panelContenido.setBackground(CF);
@@ -69,7 +64,6 @@ public class ListaAspirantesPanel extends JFrame {
         panel.setBackground(Color.BLACK);
         panel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
         
-        // Botón volver
         JLabel lblVolver = new JLabel("← ");
         lblVolver.setFont(new Font("Arial", Font.BOLD, 20));
         lblVolver.setForeground(Color.WHITE);
@@ -82,7 +76,6 @@ public class ListaAspirantesPanel extends JFrame {
         });
         panel.add(lblVolver, BorderLayout.WEST);
         
-        // Título
         JLabel lblTitulo = new JLabel("LISTA DE ASPIRANTES");
         lblTitulo.setFont(new Font("Arial", Font.BOLD, 18));
         lblTitulo.setForeground(Color.WHITE);
@@ -98,7 +91,6 @@ public class ListaAspirantesPanel extends JFrame {
     private void cargarAspirantes() {
         panelContenido.removeAll();
         
-        // Comunicación con el controlador
         ResultadoOperacion resultado = controlador.obtenerListaAspirantes();
         
         if (!resultado.isExitoso()) {
@@ -110,7 +102,6 @@ public class ListaAspirantesPanel extends JFrame {
             return;
         }
         
-        // Agregar encabezado
         JPanel panelEncabezado = new JPanel(new BorderLayout());
         panelEncabezado.setBackground(Color.BLACK);
         panelEncabezado.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
@@ -124,11 +115,10 @@ public class ListaAspirantesPanel extends JFrame {
         panelContenido.add(panelEncabezado);
         panelContenido.add(Box.createVerticalStrut(10));
         
-        // Agregar aspirantes
         @SuppressWarnings("unchecked")
-        List<AspiranteDTO> aspirantes = (List<AspiranteDTO>) resultado.getDatos();
+        List<Map<String, Object>> aspirantes = (List<Map<String, Object>>) resultado.getDatos();
         
-        for (AspiranteDTO aspirante : aspirantes) {
+        for (Map<String, Object> aspirante : aspirantes) {
             panelContenido.add(crearPanelAspirante(aspirante));
             panelContenido.add(Box.createVerticalStrut(10));
         }
@@ -137,7 +127,7 @@ public class ListaAspirantesPanel extends JFrame {
         panelContenido.repaint();
     }
     
-    private JPanel crearPanelAspirante(AspiranteDTO aspirante) {
+    private JPanel crearPanelAspirante(Map<String, Object> datosAspirante) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
@@ -147,8 +137,9 @@ public class ListaAspirantesPanel extends JFrame {
         ));
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
         
-        // Nombre del acudiente
-        JLabel lblAcudiente = new JLabel("Acudiente: " + aspirante.getNombreCompletoAcudiente());
+        String nombreAcudiente = (String) datosAspirante.get("nombreAcudiente");
+        
+        JLabel lblAcudiente = new JLabel("Acudiente: " + nombreAcudiente);
         lblAcudiente.setFont(new Font("Arial", Font.BOLD, 13));
         lblAcudiente.setForeground(CT);
         lblAcudiente.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -156,7 +147,6 @@ public class ListaAspirantesPanel extends JFrame {
         
         panel.add(Box.createVerticalStrut(8));
         
-        // Label estudiantes
         JLabel lblEstudiantes = new JLabel("Estudiantes:");
         lblEstudiantes.setFont(new Font("Arial", Font.PLAIN, 12));
         lblEstudiantes.setForeground(CT);
@@ -165,8 +155,10 @@ public class ListaAspirantesPanel extends JFrame {
         
         panel.add(Box.createVerticalStrut(5));
         
-        // Lista de estudiantes con botones
-        for (EstudianteDTO estudiante : aspirante.getEstudiantes()) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> estudiantes = (List<Map<String, Object>>) datosAspirante.get("estudiantes");
+        
+        for (Map<String, Object> estudiante : estudiantes) {
             panel.add(crearPanelEstudiante(estudiante));
             panel.add(Box.createVerticalStrut(5));
         }
@@ -174,30 +166,29 @@ public class ListaAspirantesPanel extends JFrame {
         return panel;
     }
     
-    private JPanel crearPanelEstudiante(EstudianteDTO estudiante) {
+    private JPanel crearPanelEstudiante(Map<String, Object> datosEstudiante) {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
         panel.setBackground(Color.WHITE);
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
         
-        // Información del estudiante
-        JLabel lblInfo = new JLabel("• " + estudiante.getNombreCompleto() + 
-                                    " - " + estudiante.getNombreGrado());
+        String nombreCompleto = (String) datosEstudiante.get("nombreCompleto");
+        String nombreGrado = (String) datosEstudiante.get("nombreGrado");
+        Integer idEstudiante = (Integer) datosEstudiante.get("idEstudiante");
+        
+        JLabel lblInfo = new JLabel("• " + nombreCompleto + " - " + nombreGrado);
         lblInfo.setFont(new Font("Arial", Font.PLAIN, 12));
         lblInfo.setForeground(CT);
         panel.add(lblInfo, BorderLayout.CENTER);
         
-        // Panel de botones
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         panelBotones.setBackground(Color.WHITE);
         
-        // Botón Aprobar
         JButton btnAprobar = crearBotonAccion("Aprobar", CB, CBH);
-        btnAprobar.addActionListener(e -> aprobarEstudiante(estudiante));
+        btnAprobar.addActionListener(e -> aprobarEstudiante(idEstudiante, nombreCompleto));
         panelBotones.add(btnAprobar);
         
-        // Botón Rechazar
         JButton btnRechazar = crearBotonAccion("Rechazar", CB, CBH);
-        btnRechazar.addActionListener(e -> rechazarEstudiante(estudiante));
+        btnRechazar.addActionListener(e -> rechazarEstudiante(idEstudiante, nombreCompleto));
         panelBotones.add(btnRechazar);
         
         panel.add(panelBotones, BorderLayout.EAST);
@@ -230,23 +221,21 @@ public class ListaAspirantesPanel extends JFrame {
     /**
      * Aprueba un estudiante a través del controlador MVC
      */
-    private void aprobarEstudiante(EstudianteDTO estudiante) {
+    private void aprobarEstudiante(Integer idEstudiante, String nombreEstudiante) {
         int confirmacion = JOptionPane.showConfirmDialog(
             this,
-            "¿Está seguro que desea aprobar a " + estudiante.getNombreCompleto() + "?",
+            "¿Está seguro que desea aprobar a " + nombreEstudiante + "?",
             "Confirmar aprobación",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE
         );
         
         if (confirmacion == JOptionPane.YES_OPTION) {
-            // Comunicación con el controlador
-            ResultadoOperacion resultado = controlador.aprobarEstudiante(
-                estudiante.getIdEstudiante());
+            ResultadoOperacion resultado = controlador.aprobarEstudiante(idEstudiante);
             
             if (resultado.isExitoso()) {
                 mostrarMensajeExito(resultado.getMensaje());
-                cargarAspirantes(); // Recargar lista
+                cargarAspirantes();
             } else {
                 mostrarError(resultado.getMensaje());
             }
@@ -256,23 +245,21 @@ public class ListaAspirantesPanel extends JFrame {
     /**
      * Rechaza un estudiante a través del controlador MVC
      */
-    private void rechazarEstudiante(EstudianteDTO estudiante) {
+    private void rechazarEstudiante(Integer idEstudiante, String nombreEstudiante) {
         int confirmacion = JOptionPane.showConfirmDialog(
             this,
-            "¿Está seguro que desea rechazar a " + estudiante.getNombreCompleto() + "?",
+            "¿Está seguro que desea rechazar a " + nombreEstudiante + "?",
             "Confirmar rechazo",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE
         );
         
         if (confirmacion == JOptionPane.YES_OPTION) {
-            // Comunicación con el controlador
-            ResultadoOperacion resultado = controlador.rechazarEstudiante(
-                estudiante.getIdEstudiante());
+            ResultadoOperacion resultado = controlador.rechazarEstudiante(idEstudiante);
             
             if (resultado.isExitoso()) {
                 mostrarMensajeExito(resultado.getMensaje());
-                cargarAspirantes(); // Recargar lista
+                cargarAspirantes();
             } else {
                 mostrarError(resultado.getMensaje());
             }
@@ -322,7 +309,6 @@ public class ListaAspirantesPanel extends JFrame {
         panelContenido.setBackground(new Color(255, 235, 230));
         panelContenido.setBorder(BorderFactory.createEmptyBorder(30, 30, 20, 30));
         
-        // Icono de error
         JLabel lblIcono = new JLabel("✗");
         lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
         lblIcono.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -330,7 +316,6 @@ public class ListaAspirantesPanel extends JFrame {
         
         panelContenido.add(Box.createVerticalStrut(15));
         
-        // Título ERROR
         JLabel lblTitulo = new JLabel("ERROR");
         lblTitulo.setFont(new Font("Arial", Font.BOLD, 18));
         lblTitulo.setForeground(ROJO);
@@ -339,15 +324,13 @@ public class ListaAspirantesPanel extends JFrame {
         
         panelContenido.add(Box.createVerticalStrut(10));
         
-        // Mensaje
-        JLabel lblMensaje = new JLabel("<html><center>" + mensaje + "</center></html>");
-        lblMensaje.setFont(new Font("Arial", Font.PLAIN, 13));
-        lblMensaje.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panelContenido.add(lblMensaje);
+        JLabel lblMensajeLabel = new JLabel("<html><center>" + mensaje + "</center></html>");
+        lblMensajeLabel.setFont(new Font("Arial", Font.PLAIN, 13));
+        lblMensajeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panelContenido.add(lblMensajeLabel);
         
         panelContenido.add(Box.createVerticalStrut(20));
         
-        // Botón Aceptar
         JButton btnAceptar = new JButton("Aceptar");
         btnAceptar.setFont(new Font("Arial", Font.BOLD, 12));
         btnAceptar.setBackground(CB);
@@ -372,7 +355,6 @@ public class ListaAspirantesPanel extends JFrame {
         panelContenido.setBackground(new Color(230, 255, 235));
         panelContenido.setBorder(BorderFactory.createEmptyBorder(30, 30, 20, 30));
         
-        // Icono de éxito
         JLabel lblIcono = new JLabel("✓");
         lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 56));
         lblIcono.setForeground(VERDE);
@@ -381,7 +363,6 @@ public class ListaAspirantesPanel extends JFrame {
         
         panelContenido.add(Box.createVerticalStrut(15));
         
-        // Título ¡Listo!
         JLabel lblTitulo = new JLabel("¡Listo!");
         lblTitulo.setFont(new Font("Arial", Font.BOLD, 18));
         lblTitulo.setForeground(VERDE);
@@ -390,15 +371,13 @@ public class ListaAspirantesPanel extends JFrame {
         
         panelContenido.add(Box.createVerticalStrut(10));
         
-        // Mensaje
-        JLabel lblMensaje = new JLabel("<html><center>" + mensaje + "</center></html>");
-        lblMensaje.setFont(new Font("Arial", Font.PLAIN, 13));
-        lblMensaje.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panelContenido.add(lblMensaje);
+        JLabel lblMensajeLabel = new JLabel("<html><center>" + mensaje + "</center></html>");
+        lblMensajeLabel.setFont(new Font("Arial", Font.PLAIN, 13));
+        lblMensajeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panelContenido.add(lblMensajeLabel);
         
         panelContenido.add(Box.createVerticalStrut(20));
         
-        // Botón Aceptar
         JButton btnAceptar = new JButton("Aceptar");
         btnAceptar.setFont(new Font("Arial", Font.BOLD, 12));
         btnAceptar.setBackground(CB);
@@ -414,7 +393,6 @@ public class ListaAspirantesPanel extends JFrame {
     
     @Override
     public void dispose() {
-        // Limpiar recursos si es necesario
         super.dispose();
     }
 }
